@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { AppLocale } from "@/lib/finance/dashboard-queries";
 import { num } from "@/lib/finance/format";
+import { errorMessageFromUnknown } from "@/lib/supabase/error-message";
 
 export type ReportPeriodType = "monthly" | "quarterly" | "annual";
 
@@ -392,7 +393,7 @@ export async function fetchReportsSnapshot(
       error: null,
     };
   } catch (e) {
-    const message = e instanceof Error ? e.message : "Unknown error";
+    const message = errorMessageFromUnknown(e);
     return { data: null, error: message };
   }
 }

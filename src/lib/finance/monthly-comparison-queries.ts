@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { AppLocale } from "@/lib/finance/dashboard-queries";
 import { getFamilyIdForUser } from "@/lib/supabase/family-core";
+import { errorMessageFromUnknown } from "@/lib/supabase/error-message";
 
 export type MonthlyComparisonCategory = {
   id: string;
@@ -245,7 +246,6 @@ export async function fetchMonthlyComparisonData(
       error: null,
     };
   } catch (e) {
-    const message = e instanceof Error ? e.message : "Unknown error";
-    return { data: null, error: message };
+    return { data: null, error: errorMessageFromUnknown(e) };
   }
 }

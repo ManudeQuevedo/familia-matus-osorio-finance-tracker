@@ -5,6 +5,7 @@ import { computeGoalMetrics } from "@/lib/finance/goal-calculations";
 import { num } from "@/lib/finance/format";
 import { householdCreatorInitial } from "@/lib/finance/household";
 import { getFamilyIdForUser } from "@/lib/supabase/family-core";
+import { errorMessageFromUnknown } from "@/lib/supabase/error-message";
 
 export type GoalStatus = "active" | "completed" | "paused";
 
@@ -159,7 +160,7 @@ export async function fetchGoalsSnapshot(
       error: null,
     };
   } catch (e) {
-    const message = e instanceof Error ? e.message : "Unknown error";
+    const message = errorMessageFromUnknown(e);
     return { data: null, error: message };
   }
 }

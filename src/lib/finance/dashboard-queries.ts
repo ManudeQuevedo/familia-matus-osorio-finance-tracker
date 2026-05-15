@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { householdCreatorInitial } from "@/lib/finance/household";
 import { getFamilyIdForUser } from "@/lib/supabase/family-core";
+import { errorMessageFromUnknown } from "@/lib/supabase/error-message";
 
 export type AppLocale = "en" | "es";
 
@@ -337,7 +338,6 @@ export async function fetchDashboardSnapshot(
       error: null,
     };
   } catch (e) {
-    const message = e instanceof Error ? e.message : "Unknown error";
-    return { data: null, error: message };
+    return { data: null, error: errorMessageFromUnknown(e) };
   }
 }

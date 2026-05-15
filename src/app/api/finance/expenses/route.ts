@@ -44,10 +44,9 @@ export async function GET(request: Request) {
   });
 
   if (error || !data) {
-    return NextResponse.json(
-      { error: error ?? "Failed to load expenses" },
-      { status: 500 },
-    );
+    const message = error ?? "Failed to load expenses";
+    const status = error === "family_not_configured" ? 403 : 500;
+    return NextResponse.json({ error: message }, { status });
   }
 
   return NextResponse.json(data);

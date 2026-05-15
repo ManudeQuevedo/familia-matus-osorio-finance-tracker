@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { NoteAttachmentMeta } from "@/lib/finance/note-storage";
 import { getFamilyIdForUser } from "@/lib/supabase/family-core";
+import { errorMessageFromUnknown } from "@/lib/supabase/error-message";
 
 export type NoteType = "note" | "reminder" | "todo";
 
@@ -74,8 +75,7 @@ export async function fetchNotesSnapshot(
       error: null,
     };
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "Failed to load notes";
-    return { data: null, error: msg };
+    return { data: null, error: errorMessageFromUnknown(e, "Failed to load notes") };
   }
 }
 
@@ -108,8 +108,10 @@ export async function fetchTodayReminders(
 
     return { data: (data ?? []) as TodayReminder[], error: null };
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "Failed to load reminders";
-    return { data: [], error: msg };
+    return {
+      data: [],
+      error: errorMessageFromUnknown(e, "Failed to load reminders"),
+    };
   }
 }
 
@@ -151,8 +153,7 @@ export async function fetchNoteById(
 
     return { data: normalizeNoteRow(data), error: null };
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "Failed to load note";
-    return { data: null, error: msg };
+    return { data: null, error: errorMessageFromUnknown(e, "Failed to load note") };
   }
 }
 

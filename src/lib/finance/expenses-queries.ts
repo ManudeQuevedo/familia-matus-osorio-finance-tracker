@@ -9,6 +9,7 @@ import type {
 import { num } from "@/lib/finance/format";
 import { householdCreatorInitial, personFromEmail } from "@/lib/finance/household";
 import { getFamilyIdForUser } from "@/lib/supabase/family-core";
+import { errorMessageFromUnknown } from "@/lib/supabase/error-message";
 
 export type AccountOption = {
   id: string;
@@ -275,7 +276,7 @@ export async function fetchExpensesSnapshot(
       error: null,
     };
   } catch (e) {
-    const message = e instanceof Error ? e.message : "Unknown error";
+    const message = errorMessageFromUnknown(e);
     return { data: null, error: message };
   }
 }
@@ -307,7 +308,7 @@ export async function fetchExpenseRecordHistory(
   } catch (e) {
     return {
       data: [],
-      error: e instanceof Error ? e.message : "Unknown error",
+      error: errorMessageFromUnknown(e),
     };
   }
 }

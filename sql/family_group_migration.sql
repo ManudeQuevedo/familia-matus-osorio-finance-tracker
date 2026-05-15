@@ -48,16 +48,53 @@
       )
     );
 
+  -- family_members SELECT must NOT subquery family_members directly: Postgres treats
+  -- that as infinite RLS recursion. Use SECURITY DEFINER helpers (bypass RLS) instead.
+  CREATE OR REPLACE FUNCTION public.family_ids_for_current_user()
+  RETURNS SETOF uuid
+  LANGUAGE sql
+  STABLE
+  SECURITY DEFINER
+  SET search_path = public
+  AS $fn$
+    SELECT fm.family_id
+    FROM public.family_members fm
+    WHERE fm.user_id = auth.uid();
+  $fn$;
+
+  REVOKE ALL ON FUNCTION public.family_ids_for_current_user() FROM PUBLIC;
+  GRANT EXECUTE ON FUNCTION public.family_ids_for_current_user() TO authenticated;
+  GRANT EXECUTE ON FUNCTION public.family_ids_for_current_user() TO service_role;
+
   DROP POLICY IF EXISTS "family_members_select_same_family" ON public.family_members;
   CREATE POLICY "family_members_select_same_family"
     ON public.family_members FOR SELECT
     TO authenticated
     USING (
-      family_id IN (
-        SELECT fm.family_id FROM public.family_members fm
-        WHERE fm.user_id = auth.uid()
+      user_id = auth.uid()
+      OR family_id IN (
+        SELECT public.family_ids_for_current_user()
       )
     );
+
+  -- App lookup: runs with definer rights so it works even if SELECT policies are misconfigured.
+  CREATE OR REPLACE FUNCTION public.family_id_for_current_user()
+  RETURNS uuid
+  LANGUAGE sql
+  STABLE
+  SECURITY DEFINER
+  SET search_path = public
+  AS $fn$
+    SELECT fm.family_id
+    FROM public.family_members fm
+    WHERE fm.user_id = auth.uid()
+    ORDER BY fm.family_id
+    LIMIT 1;
+  $fn$;
+
+  REVOKE ALL ON FUNCTION public.family_id_for_current_user() FROM PUBLIC;
+  GRANT EXECUTE ON FUNCTION public.family_id_for_current_user() TO authenticated;
+  GRANT EXECUTE ON FUNCTION public.family_id_for_current_user() TO service_role;
 
   -- No INSERT/UPDATE/DELETE for authenticated on membership (solo SQL / service).
 
