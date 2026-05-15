@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Monitor, Moon, Sun, type LucideIcon } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import {
@@ -23,6 +23,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { SIDEBAR_COLLAPSE_MOTION } from "@/components/finance/sidebar-collapse-motion";
 import { cn } from "@/lib/utils";
 
 const RIPPLE_DURATION = 0.5;
@@ -125,12 +126,18 @@ export function ThemeCycleToggle({
   collapsed,
   serverTheme = "system",
   appearance = "toolbar",
+  prefersReducedMotion: prefersReducedMotionProp,
 }: {
   className?: string;
   collapsed?: boolean;
   serverTheme?: ThemePreference;
   appearance?: "toolbar" | "sidebar";
+  /** When omitted, uses `useReducedMotion()` (sidebar appearance only reads this when passed from shell). */
+  prefersReducedMotion?: boolean;
 }) {
+  const reducedMotionHook = useReducedMotion();
+  const prefersReducedMotion =
+    prefersReducedMotionProp ?? reducedMotionHook === true;
   const locale = useLocale();
   const tPrefs = useTranslations("Finance.settings.preferences");
   const { displayTheme, setTheme } = useThemePreference(serverTheme);
@@ -160,7 +167,7 @@ export function ThemeCycleToggle({
       <button
         type="button"
         className={cn(
-          "nav-item flex min-w-0 items-center rounded-lg py-2.5 text-sm font-medium transition-[gap,padding] duration-300 ease-in-out",
+          "nav-item flex min-w-0 items-center overflow-hidden whitespace-nowrap rounded-lg py-2.5 text-sm font-medium transition-[gap,padding] duration-300 ease-in-out",
           "text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
           collapsed ? "w-full justify-center px-2" : "gap-3 px-3",
           className,
@@ -169,15 +176,32 @@ export function ThemeCycleToggle({
         aria-label={`${tPrefs("theme")}: ${label}`}
         suppressHydrationWarning>
         <Icon className="h-5 w-5 shrink-0" strokeWidth={2} aria-hidden />
-        <span
+        <motion.span
           className={cn(
-            "min-w-0 overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-300 ease-in-out",
-            collapsed ? "max-w-0 opacity-0" : "max-w-48 opacity-100",
+            "min-w-0 overflow-hidden",
+            collapsed ? "w-0 shrink-0 flex-none" : "flex-1",
           )}
+          animate={{ opacity: collapsed ? 0 : 1 }}
+          transition={{
+            duration: prefersReducedMotion
+              ? 0
+              : SIDEBAR_COLLAPSE_MOTION.labelDuration,
+            ease: SIDEBAR_COLLAPSE_MOTION.widthEase,
+            delay: prefersReducedMotion
+              ? 0
+              : collapsed
+                ? 0
+                : SIDEBAR_COLLAPSE_MOTION.labelDelayExpand,
+          }}
+          style={{
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            display: "block",
+          }}
           aria-hidden={collapsed}
           suppressHydrationWarning>
           {label}
-        </span>
+        </motion.span>
       </button>
     );
 

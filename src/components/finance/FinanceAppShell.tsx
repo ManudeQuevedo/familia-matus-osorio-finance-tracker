@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { useLocale, useTranslations } from "next-intl";
 import {
   useCallback,
@@ -9,7 +9,6 @@ import {
   useRef,
   useState,
   useTransition,
-  type CSSProperties,
   type KeyboardEvent,
   type Ref,
 } from "react";
@@ -19,6 +18,7 @@ import { FINANCE_PATH_BY_KEY } from "@/components/finance/finance-nav-config";
 import type { FinanceNavKey } from "@/components/finance/finance-nav-config";
 import { FinanceMobileTopBar } from "@/components/finance/FinanceMobileTopBar";
 import { FinanceNavIcon } from "@/components/finance/FinanceNavIcon";
+import { SIDEBAR_COLLAPSE_MOTION } from "@/components/finance/sidebar-collapse-motion";
 import { SidebarBrand } from "@/components/finance/SidebarBrand";
 import {
   FinanceShellUserProvider,
@@ -46,6 +46,7 @@ function SidebarNavLink({
   href,
   active,
   collapsed,
+  prefersReducedMotion,
   className,
   onNavigate,
   linkRef,
@@ -54,6 +55,7 @@ function SidebarNavLink({
   href: string;
   active: boolean;
   collapsed: boolean;
+  prefersReducedMotion: boolean;
   className?: string;
   onNavigate?: (key: FinanceNavKey) => void;
   linkRef?: Ref<HTMLAnchorElement>;
@@ -65,21 +67,38 @@ function SidebarNavLink({
       prefetch
       onClick={() => onNavigate?.(item.key)}
       className={cn(
-        "nav-item flex min-h-11 min-w-0 items-center py-2.5 text-sm font-medium transition-[gap,padding] duration-300 ease-in-out",
+        "nav-item flex min-h-11 min-w-0 items-center overflow-hidden whitespace-nowrap py-2.5 text-sm font-medium transition-[gap,padding] duration-300 ease-in-out",
         collapsed ? "justify-center px-2" : "gap-3 px-3",
         active && "nav-item-active",
         active && collapsed && "nav-item-collapsed",
         className,
       )}>
       <FinanceNavIcon name={item.key} />
-      <span
+      <motion.span
         className={cn(
-          "min-w-0 overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-300 ease-in-out",
-          collapsed ? "max-w-0 opacity-0" : "max-w-48 opacity-100",
+          "min-w-0 overflow-hidden",
+          collapsed ? "w-0 shrink-0 flex-none" : "flex-1",
         )}
+        animate={{ opacity: collapsed ? 0 : 1 }}
+        transition={{
+          duration: prefersReducedMotion
+            ? 0
+            : SIDEBAR_COLLAPSE_MOTION.labelDuration,
+          ease: SIDEBAR_COLLAPSE_MOTION.widthEase,
+          delay: prefersReducedMotion
+            ? 0
+            : collapsed
+              ? 0
+              : SIDEBAR_COLLAPSE_MOTION.labelDelayExpand,
+        }}
+        style={{
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          display: "block",
+        }}
         aria-hidden={collapsed}>
         {item.label}
-      </span>
+      </motion.span>
     </Link>
   );
 
@@ -250,31 +269,40 @@ export function FinanceAppShell({
   const sidebarCollapsed = hydrated && collapsed;
 
   const prefersReducedMotion = reduceMotion === true;
-  const sidebarEase = "cubic-bezier(0.4, 0, 0.2, 1)";
-  const sidebarWidth = sidebarCollapsed ? "4rem" : "15rem";
-  const sidebarAsideStyle: CSSProperties = {
-    width: sidebarWidth,
-    minWidth: 0,
-    transition: prefersReducedMotion ? undefined : `width 300ms ${sidebarEase}`,
-  };
 
   return (
     <TooltipProvider delayDuration={0}>
       <FinanceShellUserProvider user={user}>
         <div className="flex h-dvh max-h-dvh min-h-0 w-full overflow-hidden bg-bg-app text-text-primary">
-          <aside
+          <motion.aside
+            initial={false}
+            animate={{
+              width: sidebarCollapsed
+                ? SIDEBAR_COLLAPSE_MOTION.widthCollapsedPx
+                : SIDEBAR_COLLAPSE_MOTION.widthExpandedPx,
+            }}
+            transition={{
+              duration: prefersReducedMotion
+                ? 0
+                : SIDEBAR_COLLAPSE_MOTION.widthDuration,
+              ease: SIDEBAR_COLLAPSE_MOTION.widthEase,
+            }}
             className={cn(
               "sticky top-0 z-40 hidden h-dvh shrink-0 border-r border-border-default bg-bg-sidebar shadow-sm md:flex",
               "relative min-w-0 overflow-visible",
             )}
-            style={sidebarAsideStyle}>
+            style={{ minWidth: 0 }}>
             <div
               className={cn(
                 "flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden md:py-4",
                 "transition-[padding] duration-300 ease-in-out",
                 sidebarCollapsed ? "md:px-2" : "md:px-4",
               )}>
-              <SidebarBrand userId={user.id} collapsed={sidebarCollapsed} />
+              <SidebarBrand
+                userId={user.id}
+                collapsed={sidebarCollapsed}
+                prefersReducedMotion={prefersReducedMotion}
+              />
               <nav
                 className="flex min-h-0 flex-1 touch-scroll flex-col gap-1 overflow-y-auto"
                 onKeyDown={onSidebarNavKeyDown}>
@@ -285,6 +313,7 @@ export function FinanceAppShell({
                     href={FINANCE_PATH_BY_KEY[item.key]}
                     active={isActive(item.key)}
                     collapsed={sidebarCollapsed}
+                    prefersReducedMotion={prefersReducedMotion}
                     onNavigate={onNavClick}
                     linkRef={(el) => {
                       navLinkRefs.current[index] = el;
@@ -303,6 +332,7 @@ export function FinanceAppShell({
                   <ThemeCycleToggle
                     collapsed={sidebarCollapsed}
                     appearance="sidebar"
+                    prefersReducedMotion={prefersReducedMotion}
                   />
                 </div>
               </div>
@@ -313,7 +343,7 @@ export function FinanceAppShell({
               expandLabel={t("sidebarExpand")}
               collapseLabel={t("sidebarCollapse")}
             />
-          </aside>
+          </motion.aside>
 
           <main
             className={cn(

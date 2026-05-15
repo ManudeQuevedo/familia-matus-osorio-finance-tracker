@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FinanceContentHeaderActions } from "@/components/finance/FinanceContentHeaderActions";
+import { CreatorBadge } from "@/components/finance/CreatorBadge";
 import { FinancePageShell } from "@/components/finance/FinancePageShell";
 import {
   GOAL_COLOR_OPTIONS,
@@ -303,6 +304,7 @@ export function GoalsPageClient({
                     </motion.div>
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
+                        <CreatorBadge letter={goal.creatorInitial} />
                         <CardTitle className="text-base">
                           {goal.title}
                         </CardTitle>

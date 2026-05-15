@@ -2,6 +2,7 @@ import type { JSONContent } from "@tiptap/react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { NoteAttachmentMeta } from "@/lib/finance/note-storage";
+import { getFamilyIdForUser } from "@/lib/supabase/family";
 
 export type NoteType = "note" | "reminder" | "todo";
 
@@ -54,10 +55,15 @@ export async function fetchNotesSnapshot(
   userId: string,
 ): Promise<{ data: NotesSnapshot | null; error: string | null }> {
   try {
+    const familyId = await getFamilyIdForUser(supabase, userId);
+    if (!familyId) {
+      return { data: null, error: "family_not_configured" };
+    }
+
     const { data, error } = await supabase
       .from("notes")
       .select(NOTE_SELECT)
-      .eq("user_id", userId)
+      .eq("family_id", familyId)
       .order("is_pinned", { ascending: false })
       .order("updated_at", { ascending: false });
 
@@ -81,10 +87,17 @@ export async function fetchTodayReminders(
     const start = startOfLocalDay().toISOString();
     const end = endOfLocalDay().toISOString();
 
+    const familyId = await getFamilyIdForUser(supabase, userId);
+    if (!familyId) {
+      // No family row yet (or family_members unreadable): treat as zero reminders.
+      // Returning an error would make /api/finance/notes?todayReminders=1 return 500 on the dashboard.
+      return { data: [], error: null };
+    }
+
     const { data, error } = await supabase
       .from("notes")
       .select("id, title, content, reminder_date")
-      .eq("user_id", userId)
+      .eq("family_id", familyId)
       .eq("type", "reminder")
       .eq("is_completed", false)
       .gte("reminder_date", start)
@@ -121,10 +134,15 @@ export async function fetchNoteById(
   noteId: string,
 ): Promise<{ data: NoteRow | null; error: string | null }> {
   try {
+    const familyId = await getFamilyIdForUser(supabase, userId);
+    if (!familyId) {
+      return { data: null, error: "family_not_configured" };
+    }
+
     const { data, error } = await supabase
       .from("notes")
       .select(NOTE_SELECT)
-      .eq("user_id", userId)
+      .eq("family_id", familyId)
       .eq("id", noteId)
       .maybeSingle();
 

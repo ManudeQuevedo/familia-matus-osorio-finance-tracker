@@ -1,7 +1,9 @@
 "use client";
 
+import { motion } from "framer-motion";
 import { createElement, useEffect, useRef, useState } from "react";
 
+import { SIDEBAR_COLLAPSE_MOTION } from "@/components/finance/sidebar-collapse-motion";
 import {
   getSidebarIcon,
   isSidebarIconId,
@@ -20,10 +22,12 @@ const FAMILY_NAME = "Familia Matus Osorio";
 export function SidebarBrand({
   userId,
   collapsed,
+  prefersReducedMotion,
   className,
 }: {
   userId: string;
   collapsed: boolean;
+  prefersReducedMotion?: boolean;
   className?: string;
 }) {
   const [iconId, setIconId] = useState<SidebarIconId>("home");
@@ -62,7 +66,7 @@ export function SidebarBrand({
   return (
     <div
       className={cn(
-        "relative mb-6 flex min-w-0 items-center",
+        "relative mb-6 flex min-w-0 items-center overflow-hidden whitespace-nowrap",
         collapsed ? "justify-center px-0" : "gap-2 px-1",
         className,
       )}>
@@ -74,14 +78,31 @@ export function SidebarBrand({
         aria-expanded={open}>
         {createElement(getSidebarIcon(iconId), { className: "h-5 w-5" })}
       </button>
-      <span
+      <motion.span
         className={cn(
-          "min-w-0 overflow-hidden text-sm font-semibold leading-tight tracking-tight transition-[max-width,opacity] duration-300 ease-in-out",
-          collapsed ? "max-w-0 opacity-0" : "max-w-56 opacity-100",
+          "min-w-0 overflow-hidden text-sm font-semibold leading-tight tracking-tight",
+          collapsed ? "w-0 shrink-0 flex-none" : "flex-1",
         )}
+        animate={{ opacity: collapsed ? 0 : 1 }}
+        transition={{
+          duration: prefersReducedMotion
+            ? 0
+            : SIDEBAR_COLLAPSE_MOTION.labelDuration,
+          ease: SIDEBAR_COLLAPSE_MOTION.widthEase,
+          delay: prefersReducedMotion
+            ? 0
+            : collapsed
+              ? 0
+              : SIDEBAR_COLLAPSE_MOTION.labelDelayExpand,
+        }}
+        style={{
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          display: "block",
+        }}
         aria-hidden={collapsed}>
         {FAMILY_NAME}
-      </span>
+      </motion.span>
       {open ? (
         <div
           ref={popoverRef}

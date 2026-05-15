@@ -8,6 +8,7 @@ import {
 } from "@/lib/finance/debt-calculations";
 import { computeGoalMetrics } from "@/lib/finance/goal-calculations";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getFamilyIdForUser } from "@/lib/supabase/family";
 
 function todayIsoDate(): string {
   return new Date().toISOString().slice(0, 10);
@@ -35,6 +36,10 @@ export async function markExpenseRecordPaid(recordId: string, locale: string) {
   if (!user) {
     return { ok: false as const, error: "unauthorized" };
   }
+  const familyId = await getFamilyIdForUser(supabase, user.id);
+  if (!familyId) {
+    return { ok: false as const, error: "family_not_configured" };
+  }
   const { error } = await supabase
     .from("expense_records")
     .update({
@@ -42,7 +47,7 @@ export async function markExpenseRecordPaid(recordId: string, locale: string) {
       paid_date: todayIsoDate(),
     })
     .eq("id", recordId)
-    .eq("user_id", user.id);
+    .eq("family_id", familyId);
   if (error) {
     return { ok: false as const, error: error.message };
   }
@@ -65,11 +70,15 @@ export async function updateExpenseRecordPaidAmount(input: {
   if (!Number.isFinite(input.amount) || input.amount < 0) {
     return { ok: false as const, error: "invalid_amount" };
   }
+  const familyId = await getFamilyIdForUser(supabase, user.id);
+  if (!familyId) {
+    return { ok: false as const, error: "family_not_configured" };
+  }
   const { error } = await supabase
     .from("expense_records")
     .update({ amount: input.amount })
     .eq("id", input.recordId)
-    .eq("user_id", user.id);
+    .eq("family_id", familyId);
   if (error) {
     return { ok: false as const, error: error.message };
   }
@@ -118,10 +127,16 @@ export async function createRecurringExpense(input: {
     return { ok: false as const, error: "invalid_input" };
   }
 
+  const familyId = await getFamilyIdForUser(supabase, user.id);
+  if (!familyId) {
+    return { ok: false as const, error: "family_not_configured" };
+  }
+
   const { data: recurring, error: recErr } = await supabase
     .from("recurring_expenses")
     .insert({
       user_id: user.id,
+      family_id: familyId,
       subcategory_id: input.subcategoryId,
       account_id: input.accountId,
       name: input.name.trim(),
@@ -147,6 +162,7 @@ export async function createRecurringExpense(input: {
 
   const { error: recordErr } = await supabase.from("expense_records").insert({
     user_id: user.id,
+    family_id: familyId,
     recurring_expense_id: recurring.id,
     subcategory_id: input.subcategoryId,
     account_id: input.accountId,
@@ -220,8 +236,13 @@ export async function createQuickVariableExpense(input: {
     return { ok: false as const, error: "unauthorized" };
   }
   const desc = input.description.trim() || " ";
+  const familyId = await getFamilyIdForUser(supabase, user.id);
+  if (!familyId) {
+    return { ok: false as const, error: "family_not_configured" };
+  }
   const { error } = await supabase.from("variable_expenses").insert({
     user_id: user.id,
+    family_id: familyId,
     category_id: input.categoryId,
     subcategory_id: input.subcategoryId,
     amount: input.amount,
@@ -243,11 +264,15 @@ export async function deleteVariableExpense(id: string, locale: string) {
   if (!user) {
     return { ok: false as const, error: "unauthorized" };
   }
+  const familyId = await getFamilyIdForUser(supabase, user.id);
+  if (!familyId) {
+    return { ok: false as const, error: "family_not_configured" };
+  }
   const { error } = await supabase
     .from("variable_expenses")
     .delete()
     .eq("id", id)
-    .eq("user_id", user.id);
+    .eq("family_id", familyId);
   if (error) {
     return { ok: false as const, error: error.message };
   }
@@ -278,7 +303,6 @@ export async function getRecurringExpenseHistory(recurringExpenseId: string) {
     .from("expense_records")
     .select("id, amount, status, paid_date, period_year, period_month")
     .eq("recurring_expense_id", recurringExpenseId)
-    .eq("user_id", user.id)
     .order("period_year", { ascending: false })
     .order("period_month", { ascending: false })
     .limit(12);
@@ -320,6 +344,11 @@ export async function createIncome(input: {
     return { ok: false as const, error: "unauthorized" };
   }
 
+  const familyId = await getFamilyIdForUser(supabase, user.id);
+  if (!familyId) {
+    return { ok: false as const, error: "family_not_configured" };
+  }
+
   const isUsd =
     input.amountUsd != null &&
     input.exchangeRate != null &&
@@ -327,6 +356,7 @@ export async function createIncome(input: {
 
   const payload = {
     user_id: input.personUserId,
+    family_id: familyId,
     account_id: input.accountId,
     type: input.type,
     amount_mxn: input.amountMxn,
@@ -365,6 +395,11 @@ export async function createGoal(input: {
   } = await supabase.auth.getUser();
   if (!user) return { ok: false as const, error: "unauthorized" };
 
+  const familyId = await getFamilyIdForUser(supabase, user.id);
+  if (!familyId) {
+    return { ok: false as const, error: "family_not_configured" };
+  }
+
   const title = input.title.trim();
   if (!title || input.targetAmount < 0 || input.currentAmount < 0) {
     return { ok: false as const, error: "invalid_input" };
@@ -382,6 +417,7 @@ export async function createGoal(input: {
 
   const { error } = await supabase.from("goals").insert({
     user_id: user.id,
+    family_id: familyId,
     title,
     description: input.description?.trim() || null,
     icon: input.icon,
@@ -415,6 +451,11 @@ export async function addGoalContribution(input: {
     return { ok: false as const, error: "invalid_amount" };
   }
 
+  const familyId = await getFamilyIdForUser(supabase, user.id);
+  if (!familyId) {
+    return { ok: false as const, error: "family_not_configured" };
+  }
+
   const { data: goal, error: goalErr } = await supabase
     .from("goals")
     .select("id, current_amount, target_amount, target_date, status, user_id")
@@ -428,6 +469,7 @@ export async function addGoalContribution(input: {
   const { error: contribErr } = await supabase.from("goal_contributions").insert({
     goal_id: input.goalId,
     user_id: user.id,
+    family_id: familyId,
     amount: input.amount,
     date: input.date,
     notes: input.notes?.trim() || null,
@@ -478,6 +520,11 @@ export async function createDebt(input: {
   } = await supabase.auth.getUser();
   if (!user) return { ok: false as const, error: "unauthorized" };
 
+  const familyId = await getFamilyIdForUser(supabase, user.id);
+  if (!familyId) {
+    return { ok: false as const, error: "family_not_configured" };
+  }
+
   const name = input.name.trim();
   if (
     !name ||
@@ -501,6 +548,7 @@ export async function createDebt(input: {
 
   const { error } = await supabase.from("debts").insert({
     user_id: user.id,
+    family_id: familyId,
     name,
     total_amount: input.totalAmount,
     current_balance: input.currentBalance,
@@ -535,13 +583,18 @@ export async function registerDebtPayment(input: {
     return { ok: false as const, error: "invalid_amount" };
   }
 
+  const familyId = await getFamilyIdForUser(supabase, user.id);
+  if (!familyId) {
+    return { ok: false as const, error: "family_not_configured" };
+  }
+
   const { data: debt, error: debtErr } = await supabase
     .from("debts")
     .select(
       "id, current_balance, monthly_payment, interest_rate",
     )
     .eq("id", input.debtId)
-    .eq("user_id", user.id)
+    .eq("family_id", familyId)
     .maybeSingle();
 
   if (debtErr || !debt) {
@@ -554,6 +607,7 @@ export async function registerDebtPayment(input: {
   const { error: payErr } = await supabase.from("debt_payments").insert({
     debt_id: input.debtId,
     user_id: user.id,
+    family_id: familyId,
     amount_paid: input.amountPaid,
     payment_date: input.paymentDate,
     balance_after: balanceAfter,
@@ -599,10 +653,15 @@ export async function activateDebtPlan(input: {
   } = await supabase.auth.getUser();
   if (!user) return { ok: false as const, error: "unauthorized" };
 
+  const familyId = await getFamilyIdForUser(supabase, user.id);
+  if (!familyId) {
+    return { ok: false as const, error: "family_not_configured" };
+  }
+
   const { data: debts, error: listErr } = await supabase
     .from("debts")
     .select("id, ai_plan")
-    .eq("user_id", user.id);
+    .eq("family_id", familyId);
 
   if (listErr) return { ok: false as const, error: listErr.message };
 

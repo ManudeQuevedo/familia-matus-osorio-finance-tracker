@@ -1,13 +1,14 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import type { AppLocale } from "@/lib/finance/dashboard-queries";
 import type {
+  AppLocale,
   CategoryOption,
   PaycheckRecordRow,
   SubcategoryOption,
 } from "@/lib/finance/dashboard-queries";
 import { num } from "@/lib/finance/format";
-import { personFromEmail } from "@/lib/finance/household";
+import { householdCreatorInitial, personFromEmail } from "@/lib/finance/household";
+import { getFamilyIdForUser } from "@/lib/supabase/family";
 
 export type AccountOption = {
   id: string;
@@ -29,6 +30,7 @@ export type RecurringTemplateRow = {
   categoryColor: string;
   accountName: string;
   accountId: string;
+  creatorInitial: string;
 };
 
 export type VariableExpenseRow = {
@@ -40,6 +42,7 @@ export type VariableExpenseRow = {
   categoryName: string;
   categoryColor: string;
   subcategoryName: string | null;
+  creatorInitial: string;
 };
 
 export type ExpenseHistoryRow = {
@@ -79,6 +82,17 @@ export async function fetchExpensesSnapshot(
   const monthEnd = `${year}-${pad(month)}-${pad(lastDay)}`;
 
   try {
+    const familyId = await getFamilyIdForUser(supabase, userId);
+    if (!familyId) {
+      return { data: null, error: "family_not_configured" };
+    }
+
+    const { data: famProfiles } = await supabase
+      .from("profiles")
+      .select("id, email");
+    const emailByUserId = new Map(
+      (famProfiles ?? []).map((p) => [p.id as string, (p.email as string) ?? ""]),
+    );
     const [
       categoriesRes,
       subcategoriesRes,
@@ -100,29 +114,31 @@ export async function fetchExpensesSnapshot(
       supabase
         .from("accounts")
         .select("id, name, color, is_active")
-        .eq("user_id", userId)
+        .eq("family_id", familyId)
         .eq("is_active", true)
         .order("name"),
       supabase
         .from("expense_records")
         .select(
-          "id, name, amount, due_date, status, paid_date, paycheck_period, subcategory_id, account_id, recurring_expense_id",
+          "id, name, amount, due_date, status, paid_date, paycheck_period, subcategory_id, account_id, recurring_expense_id, user_id",
         )
+        .eq("family_id", familyId)
         .eq("period_year", year)
         .eq("period_month", month)
         .order("due_date", { ascending: true }),
       supabase
         .from("recurring_expenses")
         .select(
-          "id, name, amount, paycheck_period, due_day, is_active, notes, subcategory_id, account_id",
+          "id, name, amount, paycheck_period, due_day, is_active, notes, subcategory_id, account_id, user_id",
         )
-        .eq("user_id", userId)
+        .eq("family_id", familyId)
         .order("name"),
       supabase
         .from("variable_expenses")
         .select(
           "id, description, amount, date, category_id, subcategory_id, user_id",
         )
+        .eq("family_id", familyId)
         .gte("date", monthStart)
         .lte("date", monthEnd)
         .order("date", { ascending: false }),
@@ -180,6 +196,11 @@ export async function fetchExpensesSnapshot(
             cat?.[locale === "es" ? "name_es" : "name_en"] ?? "—",
           categoryColor: cat?.color ?? "#64748b",
           accountName: accById.get(r.account_id as string)?.name ?? "—",
+          creatorInitial: householdCreatorInitial(
+            r.user_id as string,
+            emailByUserId,
+          ),
+          recurringExpenseId: (r.recurring_expense_id as string | null) ?? null,
         };
       },
     );
@@ -204,21 +225,15 @@ export async function fetchExpensesSnapshot(
         categoryColor: cat?.color ?? "#64748b",
         accountName: accById.get(r.account_id as string)?.name ?? "—",
         accountId: r.account_id as string,
+        creatorInitial: householdCreatorInitial(
+          r.user_id as string,
+          emailByUserId,
+        ),
       };
     });
 
-    const profilesRes = await supabase
-      .from("profiles")
-      .select("id, email")
-      .in("email", [
-        "manuel.matusdequevedo@gmail.com",
-        "carolina.matus.osorio@gmail.com",
-      ]);
-    const profileIds = new Set((profilesRes.data ?? []).map((p) => p.id));
-
-    const variableExpenses: VariableExpenseRow[] = (variableRes.data ?? [])
-      .filter((v) => profileIds.has(v.user_id as string) || v.user_id === userId)
-      .map((v) => {
+    const variableExpenses: VariableExpenseRow[] = (variableRes.data ?? []).map(
+      (v) => {
         const cat = categoryById.get(v.category_id as string);
         const sub = v.subcategory_id
           ? subById.get(v.subcategory_id as string)
@@ -233,8 +248,13 @@ export async function fetchExpensesSnapshot(
             cat?.[locale === "es" ? "name_es" : "name_en"] ?? "—",
           categoryColor: cat?.color ?? "#64748b",
           subcategoryName: sub?.name ?? null,
+          creatorInitial: householdCreatorInitial(
+            v.user_id as string,
+            emailByUserId,
+          ),
         };
-      });
+      },
+    );
 
     return {
       data: {

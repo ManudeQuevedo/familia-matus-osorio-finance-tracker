@@ -7,6 +7,8 @@ import {
   payoffProgress,
 } from "@/lib/finance/debt-calculations";
 import { num } from "@/lib/finance/format";
+import { householdCreatorInitial } from "@/lib/finance/household";
+import { getFamilyIdForUser } from "@/lib/supabase/family";
 
 export type DebtStatus = "active" | "paid_off";
 
@@ -26,6 +28,7 @@ export type DebtListItem = {
   payoffMonths: number;
   payoffProgressPercent: number;
   isOwner: boolean;
+  creatorInitial: string;
 };
 
 export type DebtsSnapshot = {
@@ -52,16 +55,30 @@ export async function fetchDebtsSnapshot(
   const { userId, year, month, locale } = args;
 
   try {
+    const familyId = await getFamilyIdForUser(supabase, userId);
+    if (!familyId) {
+      return { data: null, error: "family_not_configured" };
+    }
+
+    const { data: famProfiles } = await supabase
+      .from("profiles")
+      .select("id, email");
+    const emailByUserId = new Map(
+      (famProfiles ?? []).map((p) => [p.id as string, (p.email as string) ?? ""]),
+    );
+
     const [debtsRes, incomesRes] = await Promise.all([
       supabase
         .from("debts")
         .select(
           "id, user_id, name, total_amount, current_balance, monthly_payment, interest_rate, due_day, start_date, estimated_payoff_date, status, notes, ai_plan",
         )
+        .eq("family_id", familyId)
         .order("current_balance", { ascending: false }),
       supabase
         .from("incomes")
         .select("amount_mxn")
+        .eq("family_id", familyId)
         .eq("period_year", year)
         .eq("period_month", month),
     ]);
@@ -107,6 +124,10 @@ export async function fetchDebtsSnapshot(
         payoffMonths: months,
         payoffProgressPercent: payoffProgress(total, balance),
         isOwner: (d.user_id as string) === userId,
+        creatorInitial: householdCreatorInitial(
+          d.user_id as string,
+          emailByUserId,
+        ),
       };
     });
 

@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { AppLocale } from "@/lib/finance/dashboard-queries";
+import { getFamilyIdForUser } from "@/lib/supabase/family";
 
 export type MonthlyComparisonCategory = {
   id: string;
@@ -69,6 +70,11 @@ export async function fetchMonthlyComparisonData(
   const periodSet = new Set(periods.map((p) => periodKey(p.year, p.month)));
 
   try {
+    const familyId = await getFamilyIdForUser(supabase, userId);
+    if (!familyId) {
+      return { data: null, error: "family_not_configured" };
+    }
+
     const [expenseRes, variableRes, incomesRes, categoriesRes] =
       await Promise.all([
         supabase
@@ -84,19 +90,19 @@ export async function fetchMonthlyComparisonData(
             )
           `,
           )
-          .eq("user_id", userId)
+          .eq("family_id", familyId)
           .gte("period_year", first.year)
           .lte("period_year", last.year),
         supabase
           .from("variable_expenses")
           .select("amount, date, category_id")
-          .eq("user_id", userId)
+          .eq("family_id", familyId)
           .gte("date", startDate)
           .lte("date", endDate),
         supabase
           .from("incomes")
           .select("amount_mxn, period_year, period_month")
-          .eq("user_id", userId)
+          .eq("family_id", familyId)
           .gte("period_year", first.year)
           .lte("period_year", last.year),
         supabase

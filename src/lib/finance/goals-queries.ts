@@ -3,6 +3,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AppLocale } from "@/lib/finance/dashboard-queries";
 import { computeGoalMetrics } from "@/lib/finance/goal-calculations";
 import { num } from "@/lib/finance/format";
+import { householdCreatorInitial } from "@/lib/finance/household";
+import { getFamilyIdForUser } from "@/lib/supabase/family";
 
 export type GoalStatus = "active" | "completed" | "paused";
 
@@ -24,6 +26,7 @@ export type GoalListItem = {
   biweeklyRequired: number;
   progressPercent: number;
   isOwner: boolean;
+  creatorInitial: string;
 };
 
 export type GoalsSnapshot = {
@@ -48,6 +51,18 @@ export async function fetchGoalsSnapshot(
   const { userId, year, month, locale } = args;
 
   try {
+    const familyId = await getFamilyIdForUser(supabase, userId);
+    if (!familyId) {
+      return { data: null, error: "family_not_configured" };
+    }
+
+    const { data: famProfiles } = await supabase
+      .from("profiles")
+      .select("id, email");
+    const emailByUserId = new Map(
+      (famProfiles ?? []).map((p) => [p.id as string, (p.email as string) ?? ""]),
+    );
+
     const pad = (n: number) => String(n).padStart(2, "0");
     const monthStart = `${year}-${pad(month)}-01`;
     const lastDay = new Date(year, month, 0).getDate();
@@ -59,20 +74,24 @@ export async function fetchGoalsSnapshot(
         .select(
           "id, user_id, title, description, icon, color, target_amount, current_amount, target_date, monthly_required, status, shared_goal, ai_suggestions",
         )
+        .eq("family_id", familyId)
         .order("target_date", { ascending: true }),
       supabase
         .from("incomes")
         .select("amount_mxn")
+        .eq("family_id", familyId)
         .eq("period_year", year)
         .eq("period_month", month),
       supabase
         .from("variable_expenses")
         .select("amount")
+        .eq("family_id", familyId)
         .gte("date", monthStart)
         .lte("date", monthEnd),
       supabase
         .from("expense_records")
         .select("amount")
+        .eq("family_id", familyId)
         .eq("period_year", year)
         .eq("period_month", month),
     ]);
@@ -120,6 +139,10 @@ export async function fetchGoalsSnapshot(
         biweeklyRequired: metrics.biweeklyRequired,
         progressPercent: metrics.progressPercent,
         isOwner: (g.user_id as string) === userId,
+        creatorInitial: householdCreatorInitial(
+          g.user_id as string,
+          emailByUserId,
+        ),
       };
     });
 

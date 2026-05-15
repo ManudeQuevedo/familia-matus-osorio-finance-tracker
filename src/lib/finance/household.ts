@@ -32,3 +32,15 @@ export function dueLabel(
   if (dueDay == null) return everyPaycheckLabel;
   return String(dueDay);
 }
+
+/** Initial for small UI badges (M / C / ?) from profile id + email map. */
+export function householdCreatorInitial(
+  creatorUserId: string,
+  emailByUserId: ReadonlyMap<string, string>,
+): string {
+  const email = emailByUserId.get(creatorUserId);
+  const p = personFromEmail(email ?? null);
+  if (p === "manuel") return "M";
+  if (p === "carolina") return "C";
+  return "?";
+}

@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { HOUSEHOLD_EMAILS } from "@/lib/finance/household";
 import { num } from "@/lib/finance/format";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getFamilyIdForUser } from "@/lib/supabase/family";
 
 export type AiPageContext = {
   currentPage?: string;
@@ -83,6 +84,15 @@ export async function getFinancialSnapshot(
   }
   if (!householdIds.length) householdIds = [userId];
 
+  const familyId =
+    (await getFamilyIdForUser(supabase, userId).catch(() => null)) ?? null;
+
+  const recurringQuery = supabase
+    .from("recurring_expenses")
+    .select("*, subcategories(name, categories(name_es, name_en))")
+    .eq("is_active", true);
+  const accountsQuery = supabase.from("accounts").select("*").eq("is_active", true);
+
   const safe = async <T>(
     label: string,
     query: PromiseLike<{ data: T | null; error: { message: string } | null }>,
@@ -121,11 +131,9 @@ export async function getFinancialSnapshot(
     ),
     safe(
       "recurring_expenses",
-      supabase
-        .from("recurring_expenses")
-        .select("*, subcategories(name, categories(name_es, name_en))")
-        .in("user_id", householdIds)
-        .eq("is_active", true),
+      familyId
+        ? recurringQuery.eq("family_id", familyId)
+        : recurringQuery.in("user_id", householdIds),
     ),
     safe(
       "variable_expenses",
@@ -170,11 +178,9 @@ export async function getFinancialSnapshot(
     ),
     safe(
       "accounts",
-      supabase
-        .from("accounts")
-        .select("*")
-        .in("user_id", householdIds)
-        .eq("is_active", true),
+      familyId
+        ? accountsQuery.eq("family_id", familyId)
+        : accountsQuery.in("user_id", householdIds),
     ),
   ]);
 

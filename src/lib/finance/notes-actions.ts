@@ -13,6 +13,7 @@ import { NOTE_COLOR_OPTIONS } from "@/lib/finance/note-colors";
 import type { NoteSketchData, NoteType } from "@/lib/finance/notes-queries";
 import type { NoteAttachmentMeta } from "@/lib/finance/note-storage";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getFamilyIdForUser } from "@/lib/supabase/family";
 
 const NOTE_SELECT =
   "id, user_id, title, content, type, is_pinned, is_completed, reminder_date, color, content_json, attachments, sketch_data, created_at, updated_at";
@@ -81,12 +82,16 @@ export async function createNote(input: {
   const type = parseNoteType(input.type);
   if (!type) return { ok: false as const, error: "invalid_type" };
 
+  const familyId = await getFamilyIdForUser(supabase, user.id);
+  if (!familyId) return { ok: false as const, error: "family_not_configured" };
+
   const contentJson = input.contentJson ?? textToTiptapDoc(plain);
 
   const { data, error } = await supabase
     .from("notes")
     .insert({
       user_id: user.id,
+      family_id: familyId,
       title: input.title?.trim() || null,
       content: plain,
       content_json: contentJson,
@@ -167,7 +172,6 @@ export async function updateNote(input: {
     .from("notes")
     .update(payload)
     .eq("id", input.id)
-    .eq("user_id", user.id)
     .select(NOTE_SELECT)
     .single();
 
@@ -214,7 +218,6 @@ export async function saveNoteContent(input: {
     .from("notes")
     .update(payload)
     .eq("id", input.id)
-    .eq("user_id", user.id)
     .select(NOTE_SELECT)
     .single();
 
@@ -262,7 +265,6 @@ export async function updateNoteMeta(input: {
     .from("notes")
     .update(payload)
     .eq("id", input.id)
-    .eq("user_id", user.id)
     .select(NOTE_SELECT)
     .single();
 
@@ -288,8 +290,7 @@ export async function deleteNote(input: { locale: string; id: string }) {
   const { error } = await supabase
     .from("notes")
     .delete()
-    .eq("id", input.id)
-    .eq("user_id", user.id);
+    .eq("id", input.id);
 
   if (error) return { ok: false as const, error: error.message };
 
@@ -324,7 +325,6 @@ export async function toggleNoteCompleted(input: {
     .from("notes")
     .update({ is_completed: input.isCompleted })
     .eq("id", input.id)
-    .eq("user_id", user.id)
     .select(NOTE_SELECT)
     .single();
 

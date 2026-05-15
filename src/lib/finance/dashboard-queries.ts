@@ -1,5 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { householdCreatorInitial } from "@/lib/finance/household";
+import { getFamilyIdForUser } from "@/lib/supabase/family";
+
 export type AppLocale = "en" | "es";
 
 export type PaycheckRecordRow = {
@@ -15,6 +18,8 @@ export type PaycheckRecordRow = {
   categoryName: string;
   categoryColor: string;
   accountName: string;
+  creatorInitial: string;
+  recurringExpenseId: string | null;
 };
 
 export type CategorySlice = {
@@ -98,6 +103,10 @@ export async function fetchDashboardSnapshot(
   },
 ): Promise<{ data: DashboardSnapshot | null; error: string | null }> {
   const { userId, year, month, locale } = args;
+  const familyId = await getFamilyIdForUser(supabase, userId);
+  if (!familyId) {
+    return { data: null, error: "family_not_configured" };
+  }
   const pad = (n: number) => String(n).padStart(2, "0");
   const monthStart = `${year}-${pad(month)}-01`;
   const lastDay = new Date(year, month, 0).getDate();
@@ -123,21 +132,21 @@ export async function fetchDashboardSnapshot(
       supabase
         .from("incomes")
         .select("amount_mxn")
-        .eq("user_id", userId)
+        .eq("family_id", familyId)
         .eq("period_year", year)
         .eq("period_month", month),
       supabase
         .from("variable_expenses")
         .select("amount, category_id")
-        .eq("user_id", userId)
+        .eq("family_id", familyId)
         .gte("date", monthStart)
         .lte("date", monthEnd),
       supabase
         .from("expense_records")
         .select(
-          "id, name, amount, due_date, status, paid_date, paycheck_period, subcategory_id, account_id",
+          "id, name, amount, due_date, status, paid_date, paycheck_period, subcategory_id, account_id, user_id, recurring_expense_id",
         )
-        .eq("user_id", userId)
+        .eq("family_id", familyId)
         .eq("period_year", year)
         .eq("period_month", month)
         .order("due_date", { ascending: true }),
@@ -146,14 +155,14 @@ export async function fetchDashboardSnapshot(
         .select(
           "id, title, current_amount, target_amount, target_date, color, status",
         )
-        .eq("user_id", userId)
+        .eq("family_id", familyId)
         .eq("status", "active")
         .order("target_date", { ascending: true })
         .limit(3),
       supabase
         .from("debts")
         .select("id, name, current_balance, due_day, monthly_payment, status")
-        .eq("user_id", userId)
+        .eq("family_id", familyId)
         .eq("status", "active"),
       supabase
         .from("categories")
@@ -165,7 +174,7 @@ export async function fetchDashboardSnapshot(
         .select("id, category_id, name, is_active")
         .eq("is_active", true)
         .order("name"),
-      supabase.from("accounts").select("id, name").eq("user_id", userId),
+      supabase.from("accounts").select("id, name").eq("family_id", familyId),
     ]);
 
     if (profileRes.error) throw profileRes.error;
@@ -203,6 +212,17 @@ export async function fetchDashboardSnapshot(
     }
 
     const records = recordsRes.data ?? [];
+
+    const { data: dashProfiles } = await supabase
+      .from("profiles")
+      .select("id, email");
+    const emailByUserId = new Map(
+      (dashProfiles ?? []).map((p) => [
+        p.id as string,
+        (p.email as string) ?? "",
+      ]),
+    );
+
     const subcategories = (subcategoriesRes.data ?? []).filter(Boolean);
     const subById = new Map(subcategories.map((s) => [s.id, s]));
 
@@ -235,6 +255,11 @@ export async function fetchDashboardSnapshot(
         categoryName,
         categoryColor: cat?.color ?? "#64748b",
         accountName: (accById.get(r.account_id as string) as string) ?? "—",
+        creatorInitial: householdCreatorInitial(
+          r.user_id as string,
+          emailByUserId,
+        ),
+        recurringExpenseId: (r.recurring_expense_id as string | null) ?? null,
       });
     }
 

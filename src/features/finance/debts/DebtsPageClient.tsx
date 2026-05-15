@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FinanceContentHeaderActions } from "@/components/finance/FinanceContentHeaderActions";
+import { CreatorBadge } from "@/components/finance/CreatorBadge";
 import { FinancePageShell } from "@/components/finance/FinancePageShell";
 import {
   activateDebtPlan,
@@ -354,6 +355,7 @@ export function DebtsPageClient({
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.1 }}>
                     <div className="flex flex-wrap items-center gap-2">
+                      <CreatorBadge letter={debt.creatorInitial} />
                       <CardTitle className="text-base">{debt.name}</CardTitle>
                       <Badge
                         variant={

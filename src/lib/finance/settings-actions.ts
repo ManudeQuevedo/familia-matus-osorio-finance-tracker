@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { isAccentColor, type AccentColor } from "@/lib/finance/accent";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getFamilyIdForUser } from "@/lib/supabase/family";
 
 const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
 const AVATAR_MIME = new Set(["image/jpeg", "image/png", "image/webp"]);
@@ -180,16 +181,22 @@ export async function upsertAccount(input: {
   const name = input.name.trim();
   if (!name) return { ok: false as const, error: "invalid_name" };
 
+  const familyId = await getFamilyIdForUser(supabase, user.id);
+  if (!familyId) {
+    return { ok: false as const, error: "family_not_configured" };
+  }
+
   if (input.id) {
     const { error } = await supabase
       .from("accounts")
       .update({ name, type: input.type, color: input.color })
       .eq("id", input.id)
-      .eq("user_id", user.id);
+      .eq("family_id", familyId);
     if (error) return { ok: false as const, error: error.message };
   } else {
     const { error } = await supabase.from("accounts").insert({
       user_id: user.id,
+      family_id: familyId,
       name,
       type: input.type,
       color: input.color,
@@ -207,6 +214,11 @@ export async function deleteAccount(input: { locale: string; id: string }) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false as const, error: "unauthorized" };
+
+  const familyId = await getFamilyIdForUser(supabase, user.id);
+  if (!familyId) {
+    return { ok: false as const, error: "family_not_configured" };
+  }
 
   const [exp, inc, rec] = await Promise.all([
     supabase
@@ -233,7 +245,7 @@ export async function deleteAccount(input: { locale: string; id: string }) {
     .from("accounts")
     .delete()
     .eq("id", input.id)
-    .eq("user_id", user.id);
+    .eq("family_id", familyId);
 
   if (error) return { ok: false as const, error: error.message };
   revalidateSettings(input.locale);
@@ -255,11 +267,17 @@ export async function createCustomSubcategory(input: {
   const name = input.name.trim();
   if (!name) return { ok: false as const, error: "invalid_name" };
 
+  const familyId = await getFamilyIdForUser(supabase, user.id);
+  if (!familyId) {
+    return { ok: false as const, error: "family_not_configured" };
+  }
+
   const { error } = await supabase.from("subcategories").insert({
     category_id: input.categoryId,
     name,
     description: input.description?.trim() || null,
     user_id: user.id,
+    family_id: familyId,
     is_active: true,
   });
 
@@ -282,8 +300,7 @@ export async function toggleSubcategoryActive(input: {
   const { error } = await supabase
     .from("subcategories")
     .update({ is_active: input.isActive })
-    .eq("id", input.id)
-    .eq("user_id", user.id);
+    .eq("id", input.id);
 
   if (error) return { ok: false as const, error: error.message };
   revalidateSettings(input.locale);
@@ -303,8 +320,7 @@ export async function deleteCustomSubcategory(input: {
   const { error } = await supabase
     .from("subcategories")
     .delete()
-    .eq("id", input.id)
-    .eq("user_id", user.id);
+    .eq("id", input.id);
 
   if (error) return { ok: false as const, error: error.message };
   revalidateSettings(input.locale);

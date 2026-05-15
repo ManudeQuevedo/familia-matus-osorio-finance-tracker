@@ -8,6 +8,8 @@ import { SettingsModalHost } from "@/components/finance/SettingsModal";
 import { PageTransition } from "@/components/motion/PageTransition";
 import { SettingsModalProvider } from "@/contexts/settings-modal-context";
 import { QueryProvider } from "@/components/providers/QueryProvider";
+import { getCachedFamilyIdForUser } from "@/lib/supabase/family";
+import { RealtimeSync } from "@/components/providers/RealtimeSync";
 import { ToastHooksBridge } from "@/components/providers/ToastHooksBridge";
 import {
   ProfileThemeBootstrap,
@@ -64,8 +66,11 @@ export default async function AppGroupLayout({
   const { data: settingsSnapshot, error: settingsLoadError } =
     await fetchSettingsSnapshot(supabase, user.id, localeTag);
 
+  const familyId = await getCachedFamilyIdForUser(user.id);
+
   return (
     <QueryProvider>
+      {familyId ? <RealtimeSync familyId={familyId} /> : null}
       <ProfileThemeBootstrap userId={user.id} initialTheme={initialTheme} />
       <UserPreferencesProvider
         userId={user.id}

@@ -8,6 +8,7 @@ import {
   personFromEmail,
   type HouseholdPerson,
 } from "@/lib/finance/household";
+import { getFamilyIdForUser } from "@/lib/supabase/family";
 
 export type AccountOption = {
   id: string;
@@ -116,11 +117,16 @@ export async function fetchIncomesSnapshot(
   const { userId, year, month, locale } = args;
 
   try {
+    const familyId = await getFamilyIdForUser(supabase, userId);
+    if (!familyId) {
+      return { data: null, error: "family_not_configured" };
+    }
+
     const [accountsRes, profilesRes, incomesRes] = await Promise.all([
       supabase
         .from("accounts")
         .select("id, name")
-        .eq("user_id", userId)
+        .eq("family_id", familyId)
         .eq("is_active", true)
         .order("name"),
       supabase.from("profiles").select("id, email, full_name"),
@@ -129,6 +135,7 @@ export async function fetchIncomesSnapshot(
         .select(
           "id, user_id, type, amount_mxn, amount_original, original_currency, exchange_rate_used, paycheck_number, received_date, notes",
         )
+        .eq("family_id", familyId)
         .eq("period_year", year)
         .eq("period_month", month)
         .order("received_date", { ascending: false }),

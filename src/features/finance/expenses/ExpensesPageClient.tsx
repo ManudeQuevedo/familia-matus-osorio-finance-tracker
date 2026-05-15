@@ -41,6 +41,7 @@ import {
   updateExpenseRecordPaidAmount,
 } from "@/lib/finance/actions";
 import { toastConfirmDestructive, notify } from "@/lib/toast";
+import { CreatorBadge } from "@/components/finance/CreatorBadge";
 import { FinanceContentHeaderActions } from "@/components/finance/FinanceContentHeaderActions";
 import { FinancePageShell } from "@/components/finance/FinancePageShell";
 import type { ExpensesSnapshot } from "@/lib/finance/expenses-queries";
@@ -588,9 +589,12 @@ export function ExpensesPageClient({
                     <span>{t("recurring.columns.status")}</span>
                   </motion.div>
                   {filteredRecurring.map((row, i) => {
-                    const template = snapshot.recurringTemplates.find(
-                      (rt) => rt.name === row.name,
-                    );
+                    const template =
+                      row.recurringExpenseId != null
+                        ? snapshot.recurringTemplates.find(
+                            (rt) => rt.id === row.recurringExpenseId,
+                          )
+                        : undefined;
                     return (
                       <motion.div
                         key={row.id}
@@ -600,7 +604,10 @@ export function ExpensesPageClient({
                         <Card className="overflow-hidden">
                           <CardContent className="grid gap-3 p-4 md:grid-cols-[1.4fr_1fr_0.7fr_0.7fr_0.8fr_auto] md:items-center md:gap-2">
                             <motion.div layout="position">
-                              <p className="font-medium">{row.name}</p>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <CreatorBadge letter={row.creatorInitial} />
+                                <p className="font-medium">{row.name}</p>
+                              </div>
                               <p className="text-xs text-text-muted md:hidden">
                                 {row.subcategoryName}
                               </p>
@@ -730,9 +737,12 @@ export function ExpensesPageClient({
                           const inner = (
                             <div className="flex items-center justify-between gap-3 border border-border-default bg-bg-card p-3 dark:border-border-default md:rounded-xl">
                               <div>
-                                <p className="font-medium">
-                                  {item.description}
-                                </p>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <CreatorBadge letter={item.creatorInitial} />
+                                  <p className="font-medium">
+                                    {item.description}
+                                  </p>
+                                </div>
                                 <p className="text-xs text-text-muted">
                                   {item.categoryName}
                                   {item.subcategoryName

@@ -20,6 +20,7 @@ import { uiQuincenaToDbPeriod } from "@/lib/finance/dashboard-queries";
 import { getDisplayName } from "@/lib/finance/display-name";
 import { cn } from "@/lib/utils";
 import { FinanceContentHeaderActions } from "@/components/finance/FinanceContentHeaderActions";
+import { CreatorBadge } from "@/components/finance/CreatorBadge";
 import { FinancePageShell } from "@/components/finance/FinancePageShell";
 
 function formatMxn(locale: string, value: number) {
@@ -466,7 +467,10 @@ export function DashboardHome({
                     key={row.id}
                     className="flex flex-col gap-2 rounded-lg border border-border-subtle bg-bg-card-nested/50 p-3 dark:border-border-default sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
-                      <p className="font-medium">{row.name}</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <CreatorBadge letter={row.creatorInitial} />
+                        <p className="font-medium">{row.name}</p>
+                      </div>
                       <p className="text-xs text-text-muted">
                         {row.subcategoryName} · {row.due_date}
                       </p>

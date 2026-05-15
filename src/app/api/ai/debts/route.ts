@@ -9,6 +9,7 @@ import {
   formatContextForPrompt,
 } from "@/lib/finance/household-context";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getFamilyIdForUser } from "@/lib/supabase/family";
 
 export async function POST(request: Request) {
   const supabase = await createSupabaseServerClient();
@@ -150,11 +151,20 @@ End with a JSON block:
           ...structured,
         };
 
-        const { data: userDebts } = await supabase
-          .from("debts")
-          .select("id")
-          .eq("user_id", user.id)
-          .eq("status", "active");
+        const familyId = await getFamilyIdForUser(supabase, user.id);
+
+        const { data: userDebts } =
+          familyId != null
+            ? await supabase
+                .from("debts")
+                .select("id")
+                .eq("family_id", familyId)
+                .eq("status", "active")
+            : await supabase
+                .from("debts")
+                .select("id")
+                .eq("user_id", user.id)
+                .eq("status", "active");
 
         for (const d of userDebts ?? []) {
           await supabase

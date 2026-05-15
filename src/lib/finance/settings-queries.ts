@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { getFamilyIdForUser } from "@/lib/supabase/family";
+
 export type ProfileSettings = {
   id: string;
   email: string;
@@ -51,6 +53,11 @@ export async function fetchSettingsSnapshot(
   userId: string,
   locale: "es" | "en",
 ): Promise<{ data: SettingsSnapshot | null; error: string | null }> {
+  const familyId = await getFamilyIdForUser(supabase, userId);
+  if (!familyId) {
+    return { data: null, error: "family_not_configured" };
+  }
+
   const [profileRes, accountsRes, categoriesRes, subcategoriesRes] =
     await Promise.all([
       supabase
@@ -63,7 +70,7 @@ export async function fetchSettingsSnapshot(
       supabase
         .from("accounts")
         .select("id, name, type, color, is_active")
-        .eq("user_id", userId)
+        .eq("family_id", familyId)
         .order("name"),
       supabase
         .from("categories")
