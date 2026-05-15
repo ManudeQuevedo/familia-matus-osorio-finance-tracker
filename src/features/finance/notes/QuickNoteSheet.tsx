@@ -15,8 +15,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { textToTiptapDoc } from "@/lib/finance/note-content";
 import { createNote } from "@/lib/finance/notes-actions";
-import { Link } from "@/i18n/navigation";
-import { cn } from "@/lib/utils";
+import { triggerHaptic } from "@/lib/haptic";
+import { useEscape } from "@/lib/hooks/use-escape";
+import { notify } from "@/lib/toast";
+import { useRouter } from "@/i18n/navigation";
 
 type QuickNoteSheetProps = {
   open: boolean;
@@ -35,22 +37,27 @@ export function QuickNoteSheet({
 }: QuickNoteSheetProps) {
   const t = useTranslations("Finance.notes.quick");
   const tc = useTranslations("Finance.common");
+  const router = useRouter();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [saving, setSaving] = useState(false);
-  const [savedNoteId, setSavedNoteId] = useState<string | null>(null);
-  const [toastVisible, setToastVisible] = useState(false);
 
   const reset = () => {
     setTitle("");
     setContent("");
-    setSavedNoteId(null);
-    setToastVisible(false);
   };
+
+  useEscape(() => {
+    onOpenChange(false);
+    reset();
+  }, open);
 
   const handleSave = async () => {
     const trimmed = content.trim();
-    if (!trimmed) return;
+    if (!trimmed) {
+      triggerHaptic("heavy");
+      return;
+    }
     setSaving(true);
     const res = await createNote({
       locale,
@@ -61,13 +68,18 @@ export function QuickNoteSheet({
     });
     setSaving(false);
     if (res.ok && res.note) {
-      setSavedNoteId(res.note.id);
-      setToastVisible(true);
+      triggerHaptic("light");
+      notify.notes.createSuccessWithOpen({
+        openLabel: t("openEditor"),
+        navigate: () => router.push(`/notes/${res.note.id}`),
+      });
       onSaved?.(res.note.id);
       setTitle("");
       setContent("");
       onOpenChange(false);
+      return;
     }
+    notify.notes.createError();
   };
 
   const form = (
@@ -87,7 +99,7 @@ export function QuickNoteSheet({
         <textarea
           id="quick-note-content"
           rows={4}
-          className="mt-1.5 flex w-full rounded-md border border-border-default bg-bg-card px-3 py-2 text-sm shadow-sm placeholder:text-text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent dark:border-border-default bg-bg-card"
+          className="mt-1.5 flex min-h-28 w-full rounded-md border border-border-default bg-bg-card px-3 py-2 text-base shadow-sm placeholder:text-text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent md:text-sm"
           value={content}
           onChange={(e) => setContent(e.target.value)}
           placeholder={t("contentPlaceholder")}
@@ -98,7 +110,7 @@ export function QuickNoteSheet({
 
   const footer = (
     <Button
-      className="w-full bg-accent text-accent-foreground hover:bg-accent-hover"
+      className="w-full"
       disabled={saving || !content.trim()}
       onClick={() => void handleSave()}>
       {saving ? tc("saving") : tc("save")}
@@ -134,49 +146,6 @@ export function QuickNoteSheet({
           {form}
         </AnimatedBottomSheet>
       )}
-
-      {toastVisible && savedNoteId ? (
-        <QuickNoteToast
-          noteId={savedNoteId}
-          message={t("savedToast")}
-          openLabel={t("openEditor")}
-          onDismiss={() => {
-            setToastVisible(false);
-            setSavedNoteId(null);
-          }}
-        />
-      ) : null}
     </>
-  );
-}
-
-function QuickNoteToast({
-  noteId,
-  message,
-  openLabel,
-  onDismiss,
-}: {
-  noteId: string;
-  message: string;
-  openLabel: string;
-  onDismiss: () => void;
-}) {
-  return (
-    <div
-      role="status"
-      className={cn(
-        "fixed bottom-24 left-4 right-4 z-[60] flex items-center justify-between gap-3 rounded-xl border border-border-default bg-bg-card px-4 py-3 shadow-lg",
-        "dark:border-border-default bg-bg-card-nested md:bottom-8 md:left-auto md:right-8 md:max-w-sm",
-      )}>
-      <p className="text-sm font-medium">{message}</p>
-      <div className="flex shrink-0 gap-2">
-        <Button size="sm" variant="outline" asChild onClick={onDismiss}>
-          <Link href={`/notes/${noteId}`}>{openLabel}</Link>
-        </Button>
-        <Button size="sm" variant="ghost" onClick={onDismiss}>
-          ×
-        </Button>
-      </div>
-    </div>
   );
 }

@@ -19,6 +19,7 @@ import {
   type NoteColor,
 } from "@/lib/finance/note-colors";
 import type { NoteRow, NoteType } from "@/lib/finance/notes-queries";
+import { useEscape } from "@/lib/hooks/use-escape";
 import { cn } from "@/lib/utils";
 
 export type NoteFormValues = {
@@ -102,7 +103,7 @@ function TypePills({
             "rounded-full px-3 py-1.5 text-sm font-medium transition",
             value === opt.key
               ? "bg-accent-muted text-accent"
-              : "bg-bg-card-hover text-text-secondary hover:bg-zinc-200 bg-bg-card-nested dark:text-text-muted dark:hover:bg-zinc-800",
+              : "bg-bg-card-nested text-text-secondary hover:bg-bg-card-hover dark:text-text-muted dark:hover:bg-bg-card-nested",
           )}>
           {opt.label}
         </button>
@@ -184,7 +185,7 @@ function NoteFormBodyFields({
           ref={contentRef}
           id="note-content"
           rows={4}
-          className="mt-1.5 flex w-full rounded-md border border-border-default bg-bg-card px-3 py-2 text-sm shadow-sm placeholder:text-text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent dark:border-border-default bg-bg-card"
+          className="mt-1.5 flex w-full rounded-md border border-border-default bg-bg-card px-3 py-2 text-sm shadow-sm placeholder:text-text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           value={values.content}
           onChange={(e) => onChange({ ...values, content: e.target.value })}
           placeholder={contentPlaceholder}
@@ -269,6 +270,8 @@ export function NoteFormModal({
   const tc = useTranslations("Finance.common");
   const contentRef = useRef<HTMLTextAreaElement>(null);
 
+  useEscape(() => onOpenChange(false), open);
+
   useEffect(() => {
     if (open && focusContent) {
       const id = window.setTimeout(() => contentRef.current?.focus(), 120);
@@ -287,7 +290,7 @@ export function NoteFormModal({
 
   const footer = (
     <Button
-      className="w-full bg-accent text-accent-foreground hover:bg-accent-hover"
+      className="w-full"
       disabled={saving || !values.content.trim()}
       onClick={onSave}>
       {saving ? tc("saving") : tc("save")}
@@ -297,7 +300,7 @@ export function NoteFormModal({
   if (isDesktop) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
+        <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
               {editing ? t("form.editTitle") : t("form.newTitle")}

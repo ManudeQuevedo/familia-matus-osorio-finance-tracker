@@ -459,7 +459,7 @@ export async function addGoalContribution(input: {
 
   if (updErr) return { ok: false as const, error: updErr.message };
   revalidateFinancePaths(input.locale);
-  return { ok: true as const };
+  return { ok: true as const, goalCompleted: status === "completed" };
 }
 
 export async function createDebt(input: {
@@ -586,7 +586,7 @@ export async function registerDebtPayment(input: {
 
   if (updErr) return { ok: false as const, error: updErr.message };
   revalidateFinancePaths(input.locale);
-  return { ok: true as const };
+  return { ok: true as const, paidOff: balanceAfter <= 0 };
 }
 
 export async function activateDebtPlan(input: {

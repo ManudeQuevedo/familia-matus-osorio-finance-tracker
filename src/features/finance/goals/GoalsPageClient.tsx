@@ -24,6 +24,8 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FinanceContentHeaderActions } from "@/components/finance/FinanceContentHeaderActions";
+import { FinancePageShell } from "@/components/finance/FinancePageShell";
 import {
   GOAL_COLOR_OPTIONS,
   GOAL_ICON_OPTIONS,
@@ -31,9 +33,10 @@ import {
 } from "@/features/finance/goal-icons";
 import { computeGoalMetrics } from "@/lib/finance/goal-calculations";
 import { addGoalContribution, createGoal } from "@/lib/finance/actions";
+import { notify } from "@/lib/toast";
 import { formatMxn, formatShortDate } from "@/lib/finance/format";
 import type { GoalListItem, GoalsSnapshot } from "@/lib/finance/goals-queries";
-import { FinancePageShell } from "@/components/finance/FinancePageShell";
+import { useEscape } from "@/lib/hooks/use-escape";
 import { cn } from "@/lib/utils";
 
 function useIsMobile(breakpoint = 768) {
@@ -101,6 +104,10 @@ export function GoalsPageClient({
   );
   const [contribNotes, setContribNotes] = useState("");
 
+  useEscape(() => setNewOpen(false), newOpen);
+  useEscape(() => setContribGoal(null), !!contribGoal);
+  useEscape(() => setAiGoal(null), !!aiGoal);
+
   const { data, isError, refetch, isFetching } = useQuery({
     queryKey: ["finance-goals", year, month, intlLocale],
     queryFn: async () => {
@@ -157,6 +164,7 @@ export function GoalsPageClient({
         await queryClient.invalidateQueries({ queryKey: ["finance-goals"] });
       } catch {
         setAiText(t("ai.error"));
+        notify.ai.error();
       } finally {
         setAiLoading(false);
       }
@@ -182,9 +190,12 @@ export function GoalsPageClient({
     setSaving(false);
     if (res.ok) {
       setNewOpen(false);
+      notify.goals.addSuccess(title.trim() || "Meta");
       setTitle("");
       setDescription("");
       await queryClient.invalidateQueries({ queryKey: ["finance-goals"] });
+    } else {
+      notify.goals.addError();
     }
   };
 
@@ -201,10 +212,19 @@ export function GoalsPageClient({
     });
     setSaving(false);
     if (res.ok) {
+      const goalTitle = contribGoal.title;
       setContribGoal(null);
       setContribAmount("");
       setContribNotes("");
       await queryClient.invalidateQueries({ queryKey: ["finance-goals"] });
+      const amtStr = formatMxn(intlLocale, amount);
+      if ("goalCompleted" in res && res.goalCompleted) {
+        notify.goals.completedSuccess(goalTitle);
+      } else {
+        notify.goals.contributionSuccess(amtStr, goalTitle);
+      }
+    } else {
+      notify.goals.contributionError();
     }
   };
 
@@ -220,7 +240,7 @@ export function GoalsPageClient({
   }
 
   return (
-    <FinancePageShell className="pb-24 md:pb-8">
+    <FinancePageShell>
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -237,10 +257,13 @@ export function GoalsPageClient({
             </h1>
             <p className="mt-1 text-sm text-text-muted">{t("subtitle")}</p>
           </motion.div>
-          <Button onClick={() => setNewOpen(true)} size="sm">
-            <Plus className="mr-1 h-4 w-4" />
-            {t("add")}
-          </Button>
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+            <Button onClick={() => setNewOpen(true)} size="sm">
+              <Plus className="mr-1 h-4 w-4" />
+              {t("add")}
+            </Button>
+            <FinanceContentHeaderActions />
+          </div>
         </motion.header>
 
         {isFetching && !snapshot ? (
@@ -298,7 +321,7 @@ export function GoalsPageClient({
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <motion.div
-                      className="accent-progress h-2 overflow-hidden rounded-full bg-bg-card-hover bg-bg-card-hover"
+                      className="h-2 overflow-hidden rounded-full bg-bg-card-hover"
                       initial={false}>
                       <motion.div
                         className="h-full rounded-full bg-primary"
@@ -429,6 +452,7 @@ export function GoalsPageClient({
                 <div>
                   <Label>{t("form.targetAmount")}</Label>
                   <Input
+                    type="number"
                     inputMode="decimal"
                     value={targetAmount}
                     onChange={(e) => setTargetAmount(e.target.value)}
@@ -440,6 +464,7 @@ export function GoalsPageClient({
                   transition={{ delay: 0.08 }}>
                   <Label>{t("form.currentAmount")}</Label>
                   <Input
+                    type="number"
                     inputMode="decimal"
                     value={currentAmount}
                     onChange={(e) => setCurrentAmount(e.target.value)}
@@ -511,6 +536,7 @@ export function GoalsPageClient({
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                 <Label>{t("contribution.amount")}</Label>
                 <Input
+                  type="number"
                   inputMode="decimal"
                   value={contribAmount}
                   onChange={(e) => setContribAmount(e.target.value)}

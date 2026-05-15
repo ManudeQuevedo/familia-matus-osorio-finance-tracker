@@ -25,8 +25,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { categoryLucideIcon } from "@/features/finance/category-lucide";
 import { useIsDesktop } from "@/hooks/use-is-desktop";
 import { createQuickVariableExpense } from "@/lib/finance/actions";
+import { triggerHaptic } from "@/lib/haptic";
+import { useEscape } from "@/lib/hooks/use-escape";
 import type { CategoryOption } from "@/lib/finance/dashboard-queries";
 import type { ExpensesSnapshot } from "@/lib/finance/expenses-queries";
+import { notify } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
 export type QuickExpenseMode = "normal" | "ant";
@@ -99,19 +102,25 @@ export function QuickExpenseSheet({
     setHormiga(true);
   }, []);
 
+  function handleOpenChange(next: boolean) {
+    if (!next) resetForm();
+    onOpenChange(next);
+  }
+
+  useEscape(() => handleOpenChange(false), open);
+
   useEffect(() => {
-    if (!open) {
-      resetForm();
-      return;
-    }
+    if (!open) return;
     if (mode === "ant" && snapshot?.categories.length) {
       const cat = snapshot.categories.find(isHormigaCategory);
       if (cat) {
-        setPickedCategoryId(cat.id);
-        setHormiga(true);
+        queueMicrotask(() => {
+          setPickedCategoryId(cat.id);
+          setHormiga(true);
+        });
       }
     }
-  }, [open, mode, snapshot?.categories, resetForm]);
+  }, [open, mode, snapshot?.categories]);
 
   const categoryId = useMemo(() => {
     if (!snapshot?.categories.length) return "";
@@ -148,7 +157,10 @@ export function QuickExpenseSheet({
   const onSave = async () => {
     if (!snapshot || !categoryId) return;
     const amount = Number.parseFloat(amountStr.replace(",", "."));
-    if (!Number.isFinite(amount) || amount <= 0) return;
+    if (!Number.isFinite(amount) || amount <= 0) {
+      triggerHaptic("heavy");
+      return;
+    }
     setSaving(true);
     const desc =
       showHormigaToggle && hormiga
@@ -166,11 +178,15 @@ export function QuickExpenseSheet({
     });
     setSaving(false);
     if (res.ok) {
-      onOpenChange(false);
+      triggerHaptic("light");
+      handleOpenChange(false);
       resetForm();
+      notify.expenses.addSuccess(desc.trim() || "Gasto");
       void queryClient.invalidateQueries({ queryKey: ["finance-dashboard"] });
       void queryClient.invalidateQueries({ queryKey: ["finance-expenses"] });
       onSaved?.();
+    } else {
+      notify.expenses.addError();
     }
   };
 
@@ -187,6 +203,7 @@ export function QuickExpenseSheet({
           <Label htmlFor="quick-expense-amount">{t("quick.amount")}</Label>
           <Input
             id="quick-expense-amount"
+            type="number"
             inputMode="decimal"
             className="mt-1.5"
             value={amountStr}
@@ -209,13 +226,13 @@ export function QuickExpenseSheet({
                     setPickedSubcategoryId(null);
                   }}
                   className={cn(
-                    "flex flex-col items-center gap-1 rounded-xl border p-2 text-center text-xs font-medium transition",
+                    "flex min-h-[44px] flex-col items-center gap-1 rounded-xl border p-2 text-center text-xs font-medium transition",
                     active
                       ? "border-accent bg-accent-muted text-accent"
-                      : "border-border-default bg-bg-card hover:border-border-strong dark:border-border-default bg-bg-card hover:border-border-strong",
+                      : "border-border-default bg-bg-card hover:border-border-strong dark:border-border-default",
                   )}>
                   <span
-                    className="flex h-9 w-9 items-center justify-center rounded-full text-white"
+                    className="flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full text-white"
                     style={{ backgroundColor: c.color }}>
                     <Icon className="h-4 w-4" />
                   </span>
@@ -282,7 +299,7 @@ export function QuickExpenseSheet({
 
   const footer = (
     <div className="flex justify-end gap-2">
-      <Button variant="outline" onClick={() => onOpenChange(false)}>
+      <Button variant="outline" onClick={() => handleOpenChange(false)}>
         {tNav("cancel")}
       </Button>
       <Button
@@ -295,7 +312,7 @@ export function QuickExpenseSheet({
 
   if (isDesktop) {
     return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>{t("quick.title")}</DialogTitle>
@@ -310,7 +327,7 @@ export function QuickExpenseSheet({
   return (
     <AnimatedBottomSheet
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={handleOpenChange}
       title={t("quick.title")}
       footer={footer}>
       {form}

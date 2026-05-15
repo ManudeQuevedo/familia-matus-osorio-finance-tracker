@@ -1,5 +1,7 @@
 import { getTranslations } from "next-intl/server";
 
+import { FinanceContentHeaderActions } from "@/components/finance/FinanceContentHeaderActions";
+import { FinancePageShell } from "@/components/finance/FinancePageShell";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 
@@ -21,12 +23,15 @@ export default async function MorePage({ params }: Props) {
     namespace: "Finance.placeholders",
   });
   return (
-    <div className="mx-auto max-w-md space-y-6 px-4 py-10">
-      <div>
-        <h1 className="text-2xl font-semibold">{t("moreTitle")}</h1>
-        <p className="mt-2 text-sm text-text-secondary dark:text-text-muted">
-          {t("moreIntro")}
-        </p>
+    <FinancePageShell className="mx-auto max-w-md space-y-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold">{t("moreTitle")}</h1>
+          <p className="mt-2 text-sm text-text-secondary dark:text-text-muted">
+            {t("moreIntro")}
+          </p>
+        </div>
+        <FinanceContentHeaderActions />
       </div>
       <div className="flex flex-col gap-3">
         <Button asChild variant="outline" className="justify-start">
@@ -41,10 +46,7 @@ export default async function MorePage({ params }: Props) {
         <Button asChild variant="outline" className="justify-start">
           <Link href="/notes">{t("linkNotes")}</Link>
         </Button>
-        <Button asChild variant="outline" className="justify-start">
-          <Link href="/settings">{t("linkSettings")}</Link>
-        </Button>
       </div>
-    </div>
+    </FinancePageShell>
   );
 }

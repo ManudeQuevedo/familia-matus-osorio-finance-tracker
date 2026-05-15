@@ -1,10 +1,11 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
+import { CheckCircle2, Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { QRCodeSVG } from "qrcode.react";
 
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -16,6 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { notify } from "@/lib/toast";
 
 type PanelStatus = "idle" | "loading" | "error";
 
@@ -24,11 +26,10 @@ export function MfaSecurityPanel() {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
 
   const [panelStatus, setPanelStatus] = useState<PanelStatus>("loading");
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const [hasVerifiedTotp, setHasVerifiedTotp] = useState(false);
   const [pendingFactorId, setPendingFactorId] = useState<string | null>(null);
-  const [qrSrc, setQrSrc] = useState<string | null>(null);
+  const [totpUri, setTotpUri] = useState<string | null>(null);
   const [secret, setSecret] = useState<string | null>(null);
   const [enrollCode, setEnrollCode] = useState("");
   const [disableCode, setDisableCode] = useState("");
@@ -36,11 +37,10 @@ export function MfaSecurityPanel() {
 
   const refreshFactors = useCallback(async () => {
     setPanelStatus("loading");
-    setErrorMessage(null);
     const { data, error } = await supabase.auth.mfa.listFactors();
     if (error) {
       setPanelStatus("error");
-      setErrorMessage(t("factorsError"));
+      notify.mfa.genericError();
       return;
     }
 
@@ -49,7 +49,7 @@ export function MfaSecurityPanel() {
     );
     setHasVerifiedTotp(Boolean(verifiedTotp));
     setPanelStatus("idle");
-  }, [supabase, t]);
+  }, [supabase]);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -59,7 +59,6 @@ export function MfaSecurityPanel() {
 
   async function startEnrollment() {
     setBusy(true);
-    setErrorMessage(null);
     const { data, error } = await supabase.auth.mfa.enroll({
       factorType: "totp",
       friendlyName: t("factorFriendlyName"),
@@ -67,15 +66,13 @@ export function MfaSecurityPanel() {
     setBusy(false);
 
     if (error || !data) {
-      setErrorMessage(t("enrollStartError"));
+      notify.generic.unexpectedError();
       return;
     }
 
     setPendingFactorId(data.id);
     setSecret(data.totp.secret);
-    setQrSrc(
-      `data:image/svg+xml;utf-8,${encodeURIComponent(data.totp.qr_code)}`,
-    );
+    setTotpUri(data.totp.uri ?? null);
     setEnrollCode("");
   }
 
@@ -85,22 +82,34 @@ export function MfaSecurityPanel() {
     }
 
     setBusy(true);
-    setErrorMessage(null);
-    const { error } = await supabase.auth.mfa.challengeAndVerify({
+
+    const { data: challengeData, error: challengeError } =
+      await supabase.auth.mfa.challenge({ factorId: pendingFactorId });
+
+    if (challengeError || !challengeData) {
+      setBusy(false);
+      notify.mfa.invalidCode();
+      return;
+    }
+
+    const { error: verifyError } = await supabase.auth.mfa.verify({
       factorId: pendingFactorId,
+      challengeId: challengeData.id,
       code: enrollCode,
     });
+
     setBusy(false);
 
-    if (error) {
-      setErrorMessage(t("enrollVerifyError"));
+    if (verifyError) {
+      notify.mfa.enableError();
       return;
     }
 
     setPendingFactorId(null);
-    setQrSrc(null);
+    setTotpUri(null);
     setSecret(null);
     setEnrollCode("");
+    notify.mfa.enableSuccess();
     await refreshFactors();
   }
 
@@ -108,7 +117,7 @@ export function MfaSecurityPanel() {
     const { data: factors, error: factorsError } =
       await supabase.auth.mfa.listFactors();
     if (factorsError || !factors?.totp?.length) {
-      setErrorMessage(t("factorsError"));
+      notify.mfa.genericError();
       return;
     }
 
@@ -116,7 +125,7 @@ export function MfaSecurityPanel() {
       (factor) => factor.status === "verified",
     );
     if (!verified) {
-      setErrorMessage(t("noVerifiedFactor"));
+      notify.mfa.genericError();
       return;
     }
 
@@ -125,16 +134,25 @@ export function MfaSecurityPanel() {
     }
 
     setBusy(true);
-    setErrorMessage(null);
 
-    const { error: verifyError } = await supabase.auth.mfa.challengeAndVerify({
+    const { data: challengeData, error: challengeError } =
+      await supabase.auth.mfa.challenge({ factorId: verified.id });
+
+    if (challengeError || !challengeData) {
+      setBusy(false);
+      notify.mfa.invalidCode();
+      return;
+    }
+
+    const { error: verifyError } = await supabase.auth.mfa.verify({
       factorId: verified.id,
+      challengeId: challengeData.id,
       code: disableCode,
     });
 
     if (verifyError) {
       setBusy(false);
-      setErrorMessage(t("disableVerifyError"));
+      notify.mfa.disableError();
       return;
     }
 
@@ -145,22 +163,17 @@ export function MfaSecurityPanel() {
     setBusy(false);
 
     if (unenrollError) {
-      setErrorMessage(t("unenrollError"));
+      notify.mfa.disableError();
       return;
     }
 
     setDisableCode("");
+    notify.mfa.disableSuccess();
     await refreshFactors();
   }
 
   return (
     <div className="space-y-6">
-      {errorMessage ? (
-        <Alert variant="destructive">
-          <AlertDescription>{errorMessage}</AlertDescription>
-        </Alert>
-      ) : null}
-
       <Card>
         <CardHeader>
           <CardTitle>{t("mfaTitle")}</CardTitle>
@@ -169,6 +182,14 @@ export function MfaSecurityPanel() {
               ? t("mfaActiveDescription")
               : t("mfaInactiveDescription")}
           </CardDescription>
+          {hasVerifiedTotp ? (
+            <div className="pt-2">
+              <Badge variant="success" className="gap-1">
+                <CheckCircle2 className="size-3.5" />
+                {t("mfaActiveBadge")}
+              </Badge>
+            </div>
+          ) : null}
         </CardHeader>
         <CardContent className="space-y-4">
           {panelStatus === "loading" ? (
@@ -196,23 +217,31 @@ export function MfaSecurityPanel() {
                   <p className="text-sm text-text-secondary dark:text-text-muted">
                     {t("scanQr")}
                   </p>
-                  {qrSrc ? (
-                    // Data URL SVG from Supabase; next/image is not a fit here.
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={qrSrc}
-                      alt={t("qrAlt")}
-                      className="mx-auto h-44 w-44 rounded-lg border border-border-default bg-bg-card p-2 dark:border-border-default"
-                    />
+                  {totpUri ? (
+                    <div
+                      role="group"
+                      aria-label={t("qrAlt")}
+                      className="mx-auto w-fit rounded-lg border border-border-default bg-white p-2 dark:border-border-default">
+                      <QRCodeSVG
+                        value={totpUri}
+                        size={200}
+                        level="M"
+                        marginSize={4}
+                        title={t("qrAlt")}
+                        bgColor="#ffffff"
+                        fgColor="#000000"
+                        style={{ borderRadius: 8 }}
+                      />
+                    </div>
                   ) : null}
                   {secret ? (
-                    <div className="space-y-1">
-                      <Label>{t("manualSecret")}</Label>
-                      <Input
-                        readOnly
-                        value={secret}
-                        className="font-mono text-xs"
-                      />
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-text-secondary dark:text-text-muted">
+                        {t("manualSecret")}
+                      </p>
+                      <code className="block w-full max-w-md select-all break-all rounded-lg bg-muted px-3 py-2 font-mono text-sm">
+                        {secret}
+                      </code>
                     </div>
                   ) : null}
                   <div className="space-y-2">
@@ -250,10 +279,9 @@ export function MfaSecurityPanel() {
                       variant="outline"
                       onClick={() => {
                         setPendingFactorId(null);
-                        setQrSrc(null);
+                        setTotpUri(null);
                         setSecret(null);
                         setEnrollCode("");
-                        setErrorMessage(null);
                       }}>
                       {t("cancel")}
                     </Button>

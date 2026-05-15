@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { createElement, useEffect, useRef, useState } from "react";
 
 import {
   getSidebarIcon,
@@ -20,19 +20,23 @@ const FAMILY_NAME = "Familia Matus Osorio";
 export function SidebarBrand({
   userId,
   collapsed,
+  className,
 }: {
   userId: string;
   collapsed: boolean;
+  className?: string;
 }) {
   const [iconId, setIconId] = useState<SidebarIconId>("home");
   const [open, setOpen] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const stored = getUserPref(SIDEBAR_ICON_STORAGE_BASE, userId);
-    if (stored && isSidebarIconId(stored)) {
-      setIconId(stored);
-    }
+    queueMicrotask(() => {
+      const stored = getUserPref(SIDEBAR_ICON_STORAGE_BASE, userId);
+      if (stored && isSidebarIconId(stored)) {
+        setIconId(stored);
+      }
+    });
   }, [userId]);
 
   useEffect(() => {
@@ -49,8 +53,6 @@ export function SidebarBrand({
     return () => document.removeEventListener("mousedown", onPointerDown);
   }, [open]);
 
-  const BrandIcon = getSidebarIcon(iconId);
-
   const pickIcon = (id: SidebarIconId) => {
     setIconId(id);
     setUserPref(SIDEBAR_ICON_STORAGE_BASE, userId, id);
@@ -62,6 +64,7 @@ export function SidebarBrand({
       className={cn(
         "relative mb-6 flex min-w-0 items-center",
         collapsed ? "justify-center px-0" : "gap-2 px-1",
+        className,
       )}>
       <button
         type="button"
@@ -69,7 +72,7 @@ export function SidebarBrand({
         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent text-white shadow-sm transition hover:opacity-90"
         aria-label="Change sidebar icon"
         aria-expanded={open}>
-        <BrandIcon className="h-5 w-5" />
+        {createElement(getSidebarIcon(iconId), { className: "h-5 w-5" })}
       </button>
       <span
         className={cn(
@@ -83,7 +86,7 @@ export function SidebarBrand({
         <div
           ref={popoverRef}
           className={cn(
-            "absolute z-50 rounded-xl border border-border-default bg-bg-card p-2 shadow-lg dark:border-border-default bg-bg-card",
+            "absolute z-50 rounded-xl border border-border-default bg-bg-card p-2 shadow-lg dark:border-border-default",
             collapsed
               ? "left-full top-0 ml-2 w-52"
               : "left-0 top-full mt-2 w-full min-w-48",
@@ -98,7 +101,7 @@ export function SidebarBrand({
                   "flex h-9 w-9 items-center justify-center rounded-lg transition",
                   iconId === id
                     ? "bg-accent-muted text-accent"
-                    : "text-text-secondary hover:bg-bg-card-hover dark:text-text-muted hover:bg-bg-card-hover",
+                    : "text-text-secondary hover:bg-bg-card-hover dark:text-text-muted",
                 )}
                 aria-label={id}>
                 <Icon className="h-4 w-4" />

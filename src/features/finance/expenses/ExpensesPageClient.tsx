@@ -40,6 +40,8 @@ import {
   markExpenseRecordPaid,
   updateExpenseRecordPaidAmount,
 } from "@/lib/finance/actions";
+import { toastConfirmDestructive, notify } from "@/lib/toast";
+import { FinanceContentHeaderActions } from "@/components/finance/FinanceContentHeaderActions";
 import { FinancePageShell } from "@/components/finance/FinancePageShell";
 import type { ExpensesSnapshot } from "@/lib/finance/expenses-queries";
 import {
@@ -49,6 +51,7 @@ import {
   formatShortDate,
 } from "@/lib/finance/format";
 import { uiQuincenaToDbPeriod } from "@/lib/finance/household";
+import { useEscape } from "@/lib/hooks/use-escape";
 import { cn } from "@/lib/utils";
 
 type Tab = "recurring" | "variable" | "add";
@@ -79,7 +82,7 @@ function CategoryPills({
           "shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition",
           value === null
             ? "border-accent bg-primary text-primary-foreground"
-            : "border-border-default bg-bg-card dark:border-border-default bg-bg-card",
+            : "border-border-default bg-bg-card dark:border-border-default",
         )}>
         {allLabel}
       </button>
@@ -95,7 +98,7 @@ function CategoryPills({
               "flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition",
               active
                 ? "border-accent bg-accent-muted text-accent"
-                : "border-border-default bg-bg-card dark:border-border-default bg-bg-card",
+                : "border-border-default bg-bg-card dark:border-border-default",
             )}>
             <Icon className="h-3.5 w-3.5" style={{ color: c.color }} />
             {locale === "es" ? c.name_es : c.name_en}
@@ -268,6 +271,9 @@ export function ExpensesPageClient({
   const [newSubName, setNewSubName] = useState("");
   const [showNewSub, setShowNewSub] = useState(false);
 
+  useEscape(() => setEditRecordId(null), Boolean(editRecordId));
+  useEscape(() => setHistoryRecurringId(null), Boolean(historyRecurringId));
+
   const categoryId = formCategoryId || snapshot?.categories[0]?.id || "";
   const subsForCat =
     snapshot?.subcategories.filter((s) => s.category_id === categoryId) ?? [];
@@ -299,11 +305,16 @@ export function ExpensesPageClient({
     return <Badge variant={variant}>{label}</Badge>;
   };
 
-  const onMarkPaid = async (id: string) => {
+  const onMarkPaid = async (id: string, name: string) => {
     setPayingId(id);
-    await markExpenseRecordPaid(id, locale);
+    const res = await markExpenseRecordPaid(id, locale);
     setPayingId(null);
-    invalidate();
+    if (res.ok) {
+      notify.expenses.markPaidSuccess(name);
+      invalidate();
+    } else {
+      notify.expenses.markPaidError();
+    }
   };
 
   const onSaveEditAmount = async () => {
@@ -311,19 +322,38 @@ export function ExpensesPageClient({
     const amount = Number.parseFloat(editAmountStr.replace(",", "."));
     if (!Number.isFinite(amount)) return;
     setSaving(true);
-    await updateExpenseRecordPaidAmount({
+    const res = await updateExpenseRecordPaidAmount({
       locale,
       recordId: editRecordId,
       amount,
     });
     setSaving(false);
-    setEditRecordId(null);
-    invalidate();
+    if (res.ok) {
+      setEditRecordId(null);
+      invalidate();
+      notify.expenses.updateSuccess();
+    } else {
+      notify.expenses.updateError();
+    }
   };
 
-  const onDeleteVariable = async (id: string) => {
-    await deleteVariableExpense(id, locale);
-    invalidate();
+  const runDeleteVariable = async (id: string, name: string) => {
+    const res = await deleteVariableExpense(id, locale);
+    if (res.ok) {
+      notify.expenses.deleteSuccess(name);
+      invalidate();
+    } else {
+      notify.expenses.deleteError();
+    }
+  };
+
+  const confirmDeleteVariable = (id: string, name: string) => {
+    toastConfirmDestructive({
+      title: `¿Eliminar "${name}"?`,
+      confirmLabel: tc("delete"),
+      cancelLabel: tc("cancel"),
+      onConfirm: () => runDeleteVariable(id, name),
+    });
   };
 
   const onCreateSub = async () => {
@@ -340,6 +370,9 @@ export function ExpensesPageClient({
       setShowNewSub(false);
       setNewSubName("");
       invalidate();
+      notify.generic.saved();
+    } else {
+      notify.generic.unexpectedError();
     }
   };
 
@@ -350,12 +383,13 @@ export function ExpensesPageClient({
 
     setSaving(true);
     if (formKind === "variable") {
+      const variableDescription = formDesc.trim() || formName.trim() || "Gasto";
       const res = await createVariableExpense({
         locale,
         amount,
         categoryId,
         subcategoryId: formSubcategoryId || null,
-        description: formDesc.trim() || formName.trim() || " ",
+        description: variableDescription || " ",
         date: formDate,
       });
       setSaving(false);
@@ -365,6 +399,9 @@ export function ExpensesPageClient({
         setFormName("");
         setTab("variable");
         invalidate();
+        notify.expenses.addSuccess(variableDescription);
+      } else {
+        notify.expenses.addError();
       }
       return;
     }
@@ -378,9 +415,10 @@ export function ExpensesPageClient({
       return;
     }
 
+    const recurringName = formName.trim();
     const res = await createRecurringExpense({
       locale,
-      name: formName.trim(),
+      name: recurringName,
       subcategoryId: formSubcategoryId,
       accountId,
       amount,
@@ -398,6 +436,9 @@ export function ExpensesPageClient({
       setFormNotes("");
       setTab("recurring");
       invalidate();
+      notify.expenses.addSuccess(recurringName);
+    } else {
+      notify.expenses.addError();
     }
   };
 
@@ -440,18 +481,21 @@ export function ExpensesPageClient({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35 }}
         className="w-full">
-        <header className="mb-6">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {t("title")}
-          </h1>
-          <p className="mt-1 text-sm text-text-muted">
-            {formatMonthYear(intlLocale, year, month)}
-          </p>
+        <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">
+              {t("title")}
+            </h1>
+            <p className="mt-1 text-sm text-text-muted">
+              {formatMonthYear(intlLocale, year, month)}
+            </p>
+          </div>
+          <FinanceContentHeaderActions />
         </header>
 
         <motion.div
           layout
-          className="mb-6 inline-flex w-full rounded-lg border border-border-default bg-bg-card p-0.5 dark:border-border-default bg-bg-card sm:w-auto">
+          className="mb-6 inline-flex w-full rounded-lg border border-border-default bg-bg-card p-0.5 dark:border-border-default sm:w-auto">
           {(["recurring", "variable", "add"] as const).map((key) => (
             <button
               key={key}
@@ -481,7 +525,7 @@ export function ExpensesPageClient({
                 className="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <motion.div
                   layout
-                  className="inline-flex rounded-lg border border-border-default bg-bg-card p-0.5 dark:border-border-default bg-bg-card">
+                  className="inline-flex rounded-lg border border-border-default bg-bg-card p-0.5 dark:border-border-default">
                   {([1, 2] as const).map((q) => (
                     <button
                       key={q}
@@ -535,7 +579,7 @@ export function ExpensesPageClient({
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="hidden gap-2 rounded-lg bg-bg-card-hover px-3 py-2 text-xs font-medium text-text-secondary md:grid md:grid-cols-[1.4fr_1fr_0.7fr_0.7fr_0.8fr_0.7fr] bg-bg-card-nested dark:text-text-muted">
+                    className="hidden gap-2 rounded-lg bg-bg-card-nested px-3 py-2 text-xs font-medium text-text-secondary md:grid md:grid-cols-[1.4fr_1fr_0.7fr_0.7fr_0.8fr_0.7fr] dark:text-text-muted">
                     <span>{t("recurring.columns.name")}</span>
                     <span>{t("recurring.columns.subcategory")}</span>
                     <span>{t("recurring.columns.due")}</span>
@@ -582,7 +626,7 @@ export function ExpensesPageClient({
                                   size="sm"
                                   variant="outline"
                                   disabled={payingId === row.id}
-                                  onClick={() => onMarkPaid(row.id)}>
+                                  onClick={() => onMarkPaid(row.id, row.name)}>
                                   {t("recurring.markPaid")}
                                 </Button>
                               )}
@@ -684,7 +728,7 @@ export function ExpensesPageClient({
                       <div className="space-y-2">
                         {items.map((item) => {
                           const inner = (
-                            <div className="flex items-center justify-between gap-3 border border-border-default bg-bg-card p-3 dark:border-border-default bg-bg-card md:rounded-xl">
+                            <div className="flex items-center justify-between gap-3 border border-border-default bg-bg-card p-3 dark:border-border-default md:rounded-xl">
                               <div>
                                 <p className="font-medium">
                                   {item.description}
@@ -704,7 +748,12 @@ export function ExpensesPageClient({
                                   size="icon"
                                   variant="ghost"
                                   className="hidden md:inline-flex"
-                                  onClick={() => onDeleteVariable(item.id)}
+                                  onClick={() =>
+                                    confirmDeleteVariable(
+                                      item.id,
+                                      item.description,
+                                    )
+                                  }
                                   aria-label={tc("delete")}>
                                   <Trash2 className="h-4 w-4 text-red-600" />
                                 </Button>
@@ -721,7 +770,12 @@ export function ExpensesPageClient({
                               </motion.div>
                               <div className="md:hidden">
                                 <SwipeRow
-                                  onDelete={() => onDeleteVariable(item.id)}
+                                  onDelete={() =>
+                                    confirmDeleteVariable(
+                                      item.id,
+                                      item.description,
+                                    )
+                                  }
                                   deleteLabel={tc("delete")}>
                                   {inner}
                                 </SwipeRow>
@@ -985,6 +1039,7 @@ export function ExpensesPageClient({
               <DialogTitle>{t("recurring.editAmount")}</DialogTitle>
             </DialogHeader>
             <Input
+              type="number"
               inputMode="decimal"
               value={editAmountStr}
               onChange={(e) => setEditAmountStr(e.target.value)}

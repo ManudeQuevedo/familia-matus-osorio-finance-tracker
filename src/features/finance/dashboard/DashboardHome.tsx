@@ -6,6 +6,7 @@ import { Bell, Plus } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { markExpenseRecordPaid } from "@/lib/finance/actions";
+import { notify } from "@/lib/toast";
 import { DashboardCategoryChart } from "@/features/finance/dashboard/DashboardCategoryChart";
 import { GoalProgressBar } from "@/features/finance/dashboard/GoalProgressBar";
 import { Badge } from "@/components/ui/badge";
@@ -18,9 +19,8 @@ import type { TodayReminder } from "@/lib/finance/notes-queries";
 import { uiQuincenaToDbPeriod } from "@/lib/finance/dashboard-queries";
 import { getDisplayName } from "@/lib/finance/display-name";
 import { cn } from "@/lib/utils";
-import { FinanceHeaderUserMenu } from "@/components/finance/FinanceHeaderUserMenu";
+import { FinanceContentHeaderActions } from "@/components/finance/FinanceContentHeaderActions";
 import { FinancePageShell } from "@/components/finance/FinancePageShell";
-import { useUserPreferences } from "@/components/providers/UserPreferencesProvider";
 
 function formatMxn(locale: string, value: number) {
   return new Intl.NumberFormat(locale === "es" ? "es-MX" : "en-US", {
@@ -132,7 +132,6 @@ export function DashboardHome({
   const t = useTranslations("Finance.dashboard");
   const tNav = useTranslations("Finance.nav");
   const intlLocale = useLocale();
-  const { avatarUrl } = useUserPreferences();
   const queryClient = useQueryClient();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
@@ -223,11 +222,16 @@ export function DashboardHome({
     void queryClient.invalidateQueries({ queryKey: ["finance-dashboard"] });
   }, [queryClient]);
 
-  const onMarkPaid = async (id: string) => {
+  const onMarkPaid = async (id: string, name: string) => {
     setPayingId(id);
     const res = await markExpenseRecordPaid(id, locale);
     setPayingId(null);
-    if (res.ok) invalidate();
+    if (res.ok) {
+      notify.expenses.markPaidSuccess(name);
+      invalidate();
+    } else {
+      notify.expenses.markPaidError();
+    }
   };
 
   const donutData =
@@ -364,11 +368,7 @@ export function DashboardHome({
               </>
             ) : null}
           </div>
-          <FinanceHeaderUserMenu
-            email={userEmail ?? null}
-            fullName={snapshot.profile.full_name}
-            avatarUrl={avatarUrl ?? snapshot.profile.avatar_url ?? null}
-          />
+          <FinanceContentHeaderActions />
         </div>
       </header>
 
@@ -434,7 +434,7 @@ export function DashboardHome({
       <section className="mt-10">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-lg font-semibold">{t("paycheck.title")}</h2>
-          <div className="inline-flex rounded-lg border border-border-default bg-bg-card p-0.5 dark:border-border-default bg-bg-card">
+          <div className="inline-flex rounded-lg border border-border-default bg-bg-card p-0.5 dark:border-border-default">
             {([1, 2] as const).map((q) => (
               <button
                 key={q}
@@ -444,7 +444,7 @@ export function DashboardHome({
                   "rounded-md px-3 py-1.5 text-sm font-medium transition",
                   quincena === q
                     ? "bg-primary text-primary-foreground shadow"
-                    : "text-text-secondary hover:text-text-primary dark:text-text-muted hover:text-text-primary",
+                    : "text-text-secondary hover:text-text-primary dark:text-text-muted",
                 )}>
                 {t(`paycheck.q${q}` as const)}
               </button>
@@ -464,7 +464,7 @@ export function DashboardHome({
                 filteredPaycheck.map((row) => (
                   <div
                     key={row.id}
-                    className="flex flex-col gap-2 rounded-lg border border-border-subtle bg-bg-card-nested/60 p-3 dark:border-border-default bg-bg-card-nested/40 sm:flex-row sm:items-center sm:justify-between">
+                    className="flex flex-col gap-2 rounded-lg border border-border-subtle bg-bg-card-nested/50 p-3 dark:border-border-default sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
                       <p className="font-medium">{row.name}</p>
                       <p className="text-xs text-text-muted">
@@ -492,7 +492,7 @@ export function DashboardHome({
                           size="sm"
                           variant="outline"
                           disabled={payingId === row.id}
-                          onClick={() => void onMarkPaid(row.id)}>
+                          onClick={() => void onMarkPaid(row.id, row.name)}>
                           {t("paycheck.markPaid")}
                         </Button>
                       ) : null}
@@ -582,7 +582,7 @@ export function DashboardHome({
                   return (
                     <div
                       key={g.id}
-                      className="rounded-xl border border-border-default bg-bg-card p-4 dark:border-border-default bg-bg-card">
+                      className="rounded-xl border border-border-default bg-bg-card p-4 dark:border-border-default">
                       <div className="flex items-start justify-between gap-2">
                         <p className="font-medium">{g.title}</p>
                         <Badge variant="secondary">
@@ -616,7 +616,7 @@ export function DashboardHome({
                 </span>
               </div>
               {nextDebt ? (
-                <div className="rounded-lg border border-border-subtle bg-bg-card-nested p-3 text-sm dark:border-border-default dark:bg-bg-card-nested">
+                <div className="rounded-lg border border-border-subtle bg-bg-card-nested p-3 text-sm dark:border-border-default">
                   <p className="font-medium">{t("debts.next")}</p>
                   <p className="mt-1 text-text-secondary">
                     {nextDebt.name} · {formatMxn(intlLocale, nextDebt.monthly)}{" "}

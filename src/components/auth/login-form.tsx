@@ -15,8 +15,10 @@ import {
 } from "react";
 
 import { useRouter } from "@/i18n/navigation";
+import { triggerHaptic } from "@/lib/haptic";
 import { routing } from "@/i18n/routing";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { notify } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
 type Step = "credentials" | "mfa";
@@ -31,10 +33,10 @@ const glassCardClass =
 const glassLabelClass = "text-sm font-medium text-white/80";
 
 const glassInputClass =
-  "w-full rounded-lg border border-white/20 bg-white/10 px-4 py-3 text-white outline-none transition-[border-color,box-shadow] placeholder:text-white/40 focus:border-white/60 focus:shadow-[0_0_0_3px_rgba(255,255,255,0.1)] disabled:cursor-not-allowed disabled:opacity-50";
+  "w-full rounded-lg border border-white/20 bg-white/10 px-4 py-3 text-base text-white outline-none transition-[border-color,box-shadow] placeholder:text-white/40 focus:border-white/60 focus:shadow-[0_0_0_3px_rgba(255,255,255,0.1)] disabled:cursor-not-allowed disabled:opacity-50";
 
 const glassDigitClass =
-  "h-14 w-12 rounded-lg border border-white/20 bg-white/10 text-center text-xl font-semibold text-white outline-none transition-[border-color,box-shadow] focus:border-white/60 focus:shadow-[0_0_0_3px_rgba(255,255,255,0.1)] disabled:cursor-not-allowed disabled:opacity-50";
+  "h-14 w-12 rounded-lg border border-white/20 bg-white/10 text-center text-base font-semibold text-white outline-none transition-[border-color,box-shadow] focus:border-white/60 focus:shadow-[0_0_0_3px_rgba(255,255,255,0.1)] disabled:cursor-not-allowed disabled:opacity-50";
 
 function isSafeRelativeNextPath(next: string): boolean {
   return (
@@ -148,7 +150,7 @@ function MfaCodeInput({
           ref={(element) => {
             inputsRef.current[index] = element;
           }}
-          type="text"
+          type="tel"
           inputMode="numeric"
           pattern="\d*"
           maxLength={1}
@@ -210,11 +212,14 @@ export function LoginForm({ nextPath }: { nextPath?: string }) {
       if (error) {
         setStatus("mfa_required");
         setTotp("");
+        notify.mfa.invalidCode();
         setErrorMessage(t("mfaInvalid"));
+        triggerHaptic("heavy");
         return;
       }
 
       setStatus("success");
+      notify.auth.loginSuccess();
       router.replace(dashboardHref);
     },
     [dashboardHref, factorId, router, supabase, t],
@@ -276,9 +281,12 @@ export function LoginForm({ nextPath }: { nextPath?: string }) {
 
     if (!allowResponse.ok) {
       setStatus("error");
+      triggerHaptic("heavy");
       if (allowResponse.status === 403) {
+        notify.auth.loginUnauthorized();
         setErrorMessage(t("unauthorizedEmail"));
       } else {
+        notify.auth.loginError();
         setErrorMessage(t("genericError"));
       }
       return;
@@ -291,6 +299,8 @@ export function LoginForm({ nextPath }: { nextPath?: string }) {
 
     if (signInError) {
       setStatus("error");
+      notify.auth.loginError();
+      triggerHaptic("heavy");
       setErrorMessage(t("invalidCredentials"));
       return;
     }
@@ -300,6 +310,8 @@ export function LoginForm({ nextPath }: { nextPath?: string }) {
 
     if (aalError) {
       setStatus("error");
+      notify.generic.unexpectedError();
+      triggerHaptic("heavy");
       setErrorMessage(t("genericError"));
       return;
     }
@@ -308,6 +320,7 @@ export function LoginForm({ nextPath }: { nextPath?: string }) {
 
     if (!needsMfa) {
       setStatus("success");
+      notify.auth.loginSuccess();
       router.replace(dashboardHref);
       return;
     }
@@ -317,6 +330,7 @@ export function LoginForm({ nextPath }: { nextPath?: string }) {
 
     if (factorsError || !factors?.totp?.length) {
       setStatus("error");
+      triggerHaptic("heavy");
       setErrorMessage(t("mfaMissingFactor"));
       return;
     }
@@ -426,7 +440,7 @@ export function LoginForm({ nextPath }: { nextPath?: string }) {
             <motion.button
               type="submit"
               disabled={isDisabled}
-              className="flex h-11 w-full items-center justify-center gap-2 rounded-lg border-0 bg-[hsl(var(--accent))] text-sm font-semibold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-11 w-full items-center justify-center gap-2 rounded-lg border-0 bg-accent text-sm font-semibold text-accent-foreground transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: 0.15 }}>
@@ -441,13 +455,23 @@ export function LoginForm({ nextPath }: { nextPath?: string }) {
             </motion.button>
           </motion.form>
         ) : (
-          <motion.div
+          <motion.form
             key="mfa"
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.35, ease: easeOut }}
-            className="space-y-5">
+            className="space-y-5"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (
+                totp.length === 6 &&
+                !isLoading &&
+                status === "mfa_required"
+              ) {
+                void verifyMfa(totp);
+              }
+            }}>
             <div className="space-y-1 text-center">
               <h2 className="text-lg font-semibold text-white">
                 {t("cardTitleMfa")}
@@ -471,21 +495,31 @@ export function LoginForm({ nextPath }: { nextPath?: string }) {
               }}
             />
 
-            {isLoading ? (
-              <p className="flex items-center justify-center gap-2 text-sm text-white/70">
-                <Loader2 className="size-4 animate-spin" />
-                {t("verifying")}
-              </p>
-            ) : null}
+            <motion.button
+              type="submit"
+              disabled={isDisabled || totp.length < 6}
+              className="flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-white/20 bg-white/15 text-sm font-semibold text-white transition hover:bg-white/25 disabled:cursor-not-allowed disabled:opacity-50"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.05 }}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  {t("verifying")}
+                </>
+              ) : (
+                t("verify")
+              )}
+            </motion.button>
 
             <button
               type="button"
               onClick={() => void handleBack()}
               disabled={isLoading}
-              className="h-10 w-full rounded-lg text-sm font-medium text-white/80 transition hover:bg-white/10 hover:text-white disabled:opacity-50">
+              className="h-11 w-full rounded-lg text-sm font-medium text-white/80 transition hover:bg-white/10 hover:text-white disabled:opacity-50">
               {t("back")}
             </button>
-          </motion.div>
+          </motion.form>
         )}
       </AnimatePresence>
     </motion.div>

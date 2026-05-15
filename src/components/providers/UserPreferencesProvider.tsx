@@ -47,17 +47,19 @@ export function UserPreferencesProvider({
   );
 
   useLayoutEffect(() => {
-    const serverAccent = normalizeAccentColor(initialAccentColor);
-    const stored = getUserPref(ACCENT_STORAGE_BASE, userId);
-    if (stored) {
-      const accent = normalizeAccentColor(stored);
-      setAccentColorState(accent);
-      applyAccentToDom(accent);
-      return;
-    }
-    setUserPref(ACCENT_STORAGE_BASE, userId, serverAccent);
-    setAccentColorState(serverAccent);
-    applyAccentToDom(serverAccent);
+    queueMicrotask(() => {
+      const serverAccent = normalizeAccentColor(initialAccentColor);
+      const stored = getUserPref(ACCENT_STORAGE_BASE, userId);
+      if (stored) {
+        const accent = normalizeAccentColor(stored);
+        setAccentColorState(accent);
+        applyAccentToDom(accent);
+        return;
+      }
+      setUserPref(ACCENT_STORAGE_BASE, userId, serverAccent);
+      setAccentColorState(serverAccent);
+      applyAccentToDom(serverAccent);
+    });
   }, [initialAccentColor, userId]);
 
   const setAccentColor = useCallback(

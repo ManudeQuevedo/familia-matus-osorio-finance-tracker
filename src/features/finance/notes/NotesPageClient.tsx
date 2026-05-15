@@ -6,6 +6,7 @@ import { Check, Pin, Plus, Search } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useMemo, useState } from "react";
 
+import { FinanceContentHeaderActions } from "@/components/finance/FinanceContentHeaderActions";
 import { FinancePageShell } from "@/components/finance/FinancePageShell";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +24,7 @@ import {
   type NoteRow,
   type NotesSnapshot,
 } from "@/lib/finance/notes-queries";
+import { notify } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
 type NoteFilter = "all" | "reminders" | "todos" | "pinned";
@@ -192,9 +194,11 @@ export function NotesPageClient({
     setCreating(false);
     if (res.ok && res.note) {
       await queryClient.invalidateQueries({ queryKey: ["finance-notes"] });
+      notify.notes.createSuccess();
       router.push(`/notes/${res.note.id}`);
       return;
     }
+    notify.notes.createError();
     setCreateError(res.ok ? t("createError") : (res.error ?? t("createError")));
   };
 
@@ -217,7 +221,7 @@ export function NotesPageClient({
   }
 
   return (
-    <FinancePageShell className="pb-24 md:pb-8">
+    <FinancePageShell>
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -230,13 +234,16 @@ export function NotesPageClient({
               </h1>
               <p className="mt-1 text-sm text-text-muted">{t("subtitle")}</p>
             </div>
-            <Button
-              size="sm"
-              disabled={creating}
-              onClick={() => void handleNewNote()}>
-              <Plus className="mr-1 h-4 w-4" />
-              {creating ? tc("saving") : t("add")}
-            </Button>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <Button
+                size="sm"
+                disabled={creating}
+                onClick={() => void handleNewNote()}>
+                <Plus className="mr-1 h-4 w-4" />
+                {creating ? tc("saving") : t("add")}
+              </Button>
+              <FinanceContentHeaderActions />
+            </div>
           </div>
 
           {createError ? (
@@ -266,7 +273,7 @@ export function NotesPageClient({
                 "rounded-full px-3 py-1.5 text-sm font-medium transition",
                 filter === f.key
                   ? "bg-accent-muted text-accent"
-                  : "bg-bg-card-hover text-text-secondary hover:bg-zinc-200 bg-bg-card-nested dark:text-text-muted",
+                  : "bg-bg-card-nested text-text-secondary hover:bg-zinc-200 dark:text-text-muted",
               )}>
               {f.label}
             </button>

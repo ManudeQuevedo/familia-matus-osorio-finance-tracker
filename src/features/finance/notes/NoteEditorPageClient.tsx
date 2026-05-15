@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { FinanceContentHeaderActions } from "@/components/finance/FinanceContentHeaderActions";
 import { FinancePageShell } from "@/components/finance/FinancePageShell";
 import type { RichTextEditorChange } from "@/components/notes/rich-text-editor";
 import { Button } from "@/components/ui/button";
@@ -23,8 +24,8 @@ import {
   updateNoteMeta,
 } from "@/lib/finance/notes-actions";
 import type { NoteRow } from "@/lib/finance/notes-queries";
-import type { NoteAttachmentMeta } from "@/lib/finance/note-storage";
 import { Link, useRouter } from "@/i18n/navigation";
+import { toastConfirmDestructive, notify } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
 const RichTextEditor = dynamic(
@@ -36,8 +37,8 @@ const RichTextEditor = dynamic(
 function EditorSkeleton() {
   return (
     <div className="animate-pulse space-y-3 p-4">
-      <div className="h-10 rounded bg-zinc-200 bg-bg-card-hover" />
-      <div className="h-64 rounded bg-zinc-200 bg-bg-card-hover" />
+      <div className="h-10 rounded bg-bg-card-hover" />
+      <div className="h-64 rounded bg-bg-card-hover" />
     </div>
   );
 }
@@ -94,6 +95,7 @@ export function NoteEditorPageClient({
       pendingRef.current = null;
     } else {
       setSaveStatus("error");
+      notify.notes.saveError();
     }
   }, [locale, initialNote.id, title]);
 
@@ -138,9 +140,20 @@ export function NoteEditorPageClient({
   };
 
   const onDelete = async () => {
-    if (!window.confirm(t("deleteConfirm"))) return;
-    const res = await deleteNote({ locale, id: initialNote.id });
-    if (res.ok) router.push("/notes");
+    toastConfirmDestructive({
+      title: t("deleteConfirm"),
+      confirmLabel: tc("delete"),
+      cancelLabel: tc("cancel"),
+      onConfirm: async () => {
+        const res = await deleteNote({ locale, id: initialNote.id });
+        if (res.ok) {
+          notify.notes.deleteSuccess();
+          router.push("/notes");
+        } else {
+          notify.generic.unexpectedError();
+        }
+      },
+    });
   };
 
   const statusLabel = () => {
@@ -159,7 +172,7 @@ export function NoteEditorPageClient({
   };
 
   return (
-    <FinancePageShell className="pb-24 md:pb-8">
+    <FinancePageShell>
       <header className="sticky top-0 z-20 -mx-4 border-b border-border-default bg-bg-sidebar px-4 py-3 shadow-sm md:-mx-6 md:px-6">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" className="shrink-0" asChild>
@@ -200,6 +213,7 @@ export function NoteEditorPageClient({
               aria-label={t("delete")}>
               <Trash2 className="h-4 w-4" />
             </Button>
+            <FinanceContentHeaderActions />
           </div>
         </div>
         {statusLabel() ? (
@@ -246,7 +260,7 @@ function ColorPicker({
         <Palette className="h-4 w-4" />
       </Button>
       {open ? (
-        <div className="absolute right-0 top-full z-30 mt-1 flex gap-1 rounded-lg border border-border-default bg-bg-card p-2 shadow-lg dark:border-border-default bg-bg-card-nested">
+        <div className="absolute right-0 top-full z-30 mt-1 flex gap-1 rounded-lg border border-border-default bg-bg-card-nested p-2 shadow-lg dark:border-border-default">
           {NOTE_COLOR_OPTIONS.map((c) => (
             <button
               key={c}

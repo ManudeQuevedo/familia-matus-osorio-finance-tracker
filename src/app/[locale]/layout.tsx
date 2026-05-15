@@ -2,6 +2,8 @@ import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getMessages, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { DocumentLang } from "@/components/DocumentLang";
+import { AppToaster } from "@/components/providers/AppToaster";
+import { ModalEscapeStackProvider } from "@/contexts/modal-escape-stack-context";
 import { routing } from "@/i18n/routing";
 
 export function generateStaticParams() {
@@ -24,8 +26,11 @@ export default async function LocaleLayout({
 
   return (
     <NextIntlClientProvider messages={messages}>
-      <DocumentLang locale={locale} />
-      <div className="flex min-h-dvh flex-1 flex-col">{children}</div>
+      <ModalEscapeStackProvider>
+        <DocumentLang locale={locale} />
+        <AppToaster />
+        <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+      </ModalEscapeStackProvider>
     </NextIntlClientProvider>
   );
 }

@@ -15,6 +15,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AiChatMarkdown } from "@/components/ai/ai-chat-markdown";
 import { useAiChat } from "@/components/providers/AiChatProvider";
 import { Button } from "@/components/ui/button";
+import { useEscape } from "@/lib/hooks/use-escape";
+import { notify } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
 type ConversationItem = {
@@ -30,7 +32,7 @@ function TypingIndicator() {
       {[0, 1, 2].map((i) => (
         <motion.span
           key={i}
-          className="h-2 w-2 rounded-full bg-zinc-400 bg-bg-card-nested"
+          className="h-2 w-2 rounded-full bg-bg-card-nested"
           animate={{ opacity: [0.3, 1, 0.3], y: [0, -3, 0] }}
           transition={{
             duration: 0.9,
@@ -80,6 +82,14 @@ export function AiChatPanel() {
   const [error, setError] = useState<string | null>(null);
   const [streamBuffer, setStreamBuffer] = useState("");
 
+  useEscape(() => {
+    if (showHistory) {
+      setShowHistory(false);
+      return;
+    }
+    minimizeChat();
+  }, open);
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const rawStreamRef = useRef("");
@@ -105,7 +115,10 @@ export function AiChatPanel() {
   }, []);
 
   useEffect(() => {
-    if (open) void loadConversations();
+    if (!open) return;
+    queueMicrotask(() => {
+      void loadConversations();
+    });
   }, [open, loadConversations]);
 
   useEffect(() => {
@@ -183,6 +196,7 @@ export function AiChatPanel() {
 
         if (res.status === 429) {
           const json = (await res.json()) as { message?: string };
+          notify.ai.rateLimit();
           setError(json.message ?? t("errors.rateLimit"));
           setIsStreaming(false);
           return;
@@ -190,6 +204,7 @@ export function AiChatPanel() {
 
         if (!res.ok || !res.body) {
           const json = await res.json().catch(() => ({}));
+          notify.ai.error();
           setError(
             (json as { message?: string }).message ?? t("errors.connection"),
           );
@@ -229,6 +244,7 @@ export function AiChatPanel() {
         rawStreamRef.current = "";
         void loadConversations();
       } catch {
+        notify.ai.error();
         setError(t("errors.connection"));
       } finally {
         setIsStreaming(false);
@@ -295,7 +311,7 @@ export function AiChatPanel() {
           <motion.button
             type="button"
             aria-label={t("close")}
-            className="fixed inset-0 z-[60] bg-black/40 md:bg-black/30"
+            className="fixed inset-0 z-60 bg-black/40 md:bg-black/30"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -303,7 +319,7 @@ export function AiChatPanel() {
           />
           <motion.aside
             className={cn(
-              "fixed inset-y-0 right-0 z-[70] flex w-full flex-col border-l border-border-default bg-bg-card shadow-2xl dark:border-border-default bg-bg-card",
+              "fixed inset-y-0 right-0 z-70 flex w-full flex-col border-l border-border-default bg-bg-card shadow-2xl dark:border-border-default",
               "md:w-[420px]",
             )}
             initial={{ x: "100%" }}
@@ -321,7 +337,7 @@ export function AiChatPanel() {
                 <button
                   type="button"
                   onClick={() => setShowHistory((v) => !v)}
-                  className="flex max-w-full items-center gap-1 text-xs text-text-muted hover:text-zinc-800 hover:text-text-primary">
+                  className="flex max-w-full items-center gap-1 text-xs text-text-muted hover:text-text-primary">
                   <span className="truncate">
                     {conversationId
                       ? (conversations.find((c) => c.id === conversationId)
@@ -392,7 +408,7 @@ export function AiChatPanel() {
                           type="button"
                           onClick={() => void selectConversation(c.id)}
                           className={cn(
-                            "w-full rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-bg-card-hover hover:bg-bg-card-hover",
+                            "w-full rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-bg-card-hover",
                             conversationId === c.id && "bg-accent-muted",
                           )}>
                           <p className="truncate font-medium">
@@ -412,7 +428,7 @@ export function AiChatPanel() {
 
             <div
               ref={scrollRef}
-              className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 py-4">
+              className="touch-scroll flex min-h-0 flex-1 flex-col overflow-y-auto px-4 py-4">
               {empty ? (
                 <div className="flex flex-1 flex-col justify-end gap-3 pb-2">
                   <p className="text-center text-sm text-text-muted">
@@ -424,7 +440,7 @@ export function AiChatPanel() {
                         key={s}
                         type="button"
                         onClick={() => void sendMessage(s)}
-                        className="rounded-full border border-border-default bg-bg-card-nested px-3 py-1.5 text-xs font-medium text-zinc-700 transition-colors hover:border-accent/40 hover:bg-accent-muted border-border-default bg-bg-card-nested text-text-secondary">
+                        className="rounded-full border border-border-default bg-bg-card-nested px-3 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:border-accent/40 hover:bg-accent-muted">
                         {s}
                       </button>
                     ))}
@@ -444,7 +460,7 @@ export function AiChatPanel() {
                           "max-w-[92%] rounded-2xl px-4 py-2.5 text-sm",
                           m.role === "user"
                             ? "bg-accent-muted text-text-primary"
-                            : "bg-bg-card-hover text-text-primary bg-bg-card-nested text-text-primary",
+                            : "bg-bg-card-nested text-text-primary",
                         )}>
                         {m.role === "assistant" ? (
                           <AiChatMarkdown content={m.content} />
@@ -458,7 +474,7 @@ export function AiChatPanel() {
                   ))}
                   {isStreaming && streamBuffer ? (
                     <div className="flex justify-start">
-                      <div className="max-w-[92%] rounded-2xl bg-bg-card-hover px-4 py-2.5 text-sm bg-bg-card-nested">
+                      <div className="max-w-[92%] rounded-2xl bg-bg-card-nested px-4 py-2.5 text-sm">
                         <AiChatMarkdown content={streamBuffer} />
                       </div>
                     </div>
@@ -477,7 +493,7 @@ export function AiChatPanel() {
             <form
               onSubmit={onSubmit}
               className="shrink-0 border-t border-border-default p-4 dark:border-border-default">
-              <div className="flex items-end gap-2 rounded-2xl border border-border-default bg-bg-card-nested p-2 border-border-default bg-bg-card-nested/80">
+              <div className="flex items-end gap-2 rounded-2xl border border-border-default bg-bg-card-nested/80 p-2">
                 <textarea
                   ref={textareaRef}
                   value={input}

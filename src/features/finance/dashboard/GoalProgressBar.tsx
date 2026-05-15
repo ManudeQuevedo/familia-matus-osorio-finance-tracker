@@ -10,7 +10,7 @@ export function GoalProgressBar({
   color: string;
 }) {
   return (
-    <div className="h-2 overflow-hidden rounded-full bg-bg-card-hover bg-bg-card-hover">
+    <div className="h-2 overflow-hidden rounded-full bg-bg-card-hover">
       <motion.div
         className="h-full rounded-full bg-primary"
         style={color ? { backgroundColor: color } : undefined}

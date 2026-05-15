@@ -1,32 +1,31 @@
 "use client";
 
-import {
-  AlertCircle,
-  BarChart3,
-  BrainCircuit,
-  ChevronLeft,
-  ChevronRight,
-  CreditCard,
-  Home,
-  Menu,
-  Settings,
-  StickyNote,
-  Target,
-  TrendingUp,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useReducedMotion } from "framer-motion";
 import { useLocale, useTranslations } from "next-intl";
 import {
   useCallback,
   useEffect,
+  useRef,
   useState,
   useTransition,
   type CSSProperties,
+  type KeyboardEvent,
+  type Ref,
 } from "react";
 
 import { AppQuickActions } from "@/components/finance/AppQuickActions";
+import { FINANCE_PATH_BY_KEY } from "@/components/finance/finance-nav-config";
+import type { FinanceNavKey } from "@/components/finance/finance-nav-config";
+import { FinanceMobileTopBar } from "@/components/finance/FinanceMobileTopBar";
+import { FinanceNavIcon } from "@/components/finance/FinanceNavIcon";
 import { SidebarBrand } from "@/components/finance/SidebarBrand";
+import {
+  FinanceShellUserProvider,
+  type FinanceShellUser,
+} from "@/contexts/finance-shell-user-context";
 import { ThemeCycleToggle } from "@/components/shared/theme-toggle";
+import { useIsDesktop } from "@/hooks/use-is-desktop";
 import { Link, usePathname } from "@/i18n/navigation";
 import {
   getUserPref,
@@ -42,66 +41,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-type NavKey =
-  | "dashboard"
-  | "expenses"
-  | "incomes"
-  | "goals"
-  | "debts"
-  | "reports"
-  | "ai"
-  | "notes"
-  | "settings"
-  | "more";
-
-const pathByKey: Record<NavKey, string> = {
-  dashboard: "/dashboard",
-  expenses: "/expenses",
-  incomes: "/incomes",
-  goals: "/goals",
-  debts: "/debts",
-  reports: "/reports",
-  ai: "/ai",
-  notes: "/notes",
-  settings: "/settings",
-  more: "/more",
-};
-
-function NavIcon({ name }: { name: NavKey }) {
-  const cls = "h-5 w-5 shrink-0";
-  switch (name) {
-    case "dashboard":
-      return <Home className={cls} />;
-    case "expenses":
-      return <CreditCard className={cls} />;
-    case "incomes":
-      return <TrendingUp className={cls} />;
-    case "goals":
-      return <Target className={cls} />;
-    case "debts":
-      return <AlertCircle className={cls} />;
-    case "reports":
-      return <BarChart3 className={cls} />;
-    case "ai":
-      return <BrainCircuit className={cls} />;
-    case "notes":
-      return <StickyNote className={cls} />;
-    case "settings":
-      return <Settings className={cls} />;
-    case "more":
-      return <Menu className={cls} />;
-    default:
-      return <Home className={cls} />;
-  }
-}
-
-export type FinanceShellUser = {
-  id: string;
-  email: string | null;
-  fullName: string | null;
-  avatarUrl: string | null;
-};
-
 function SidebarNavLink({
   item,
   href,
@@ -109,27 +48,30 @@ function SidebarNavLink({
   collapsed,
   className,
   onNavigate,
+  linkRef,
 }: {
-  item: { key: NavKey; label: string };
+  item: { key: FinanceNavKey; label: string };
   href: string;
   active: boolean;
   collapsed: boolean;
   className?: string;
-  onNavigate?: (key: NavKey) => void;
+  onNavigate?: (key: FinanceNavKey) => void;
+  linkRef?: Ref<HTMLAnchorElement>;
 }) {
   const link = (
     <Link
+      ref={linkRef}
       href={href}
       prefetch
       onClick={() => onNavigate?.(item.key)}
       className={cn(
-        "nav-item flex min-w-0 items-center py-2.5 text-sm font-medium transition-[gap,padding] duration-300 ease-in-out",
+        "nav-item flex min-h-11 min-w-0 items-center py-2.5 text-sm font-medium transition-[gap,padding] duration-300 ease-in-out",
         collapsed ? "justify-center px-2" : "gap-3 px-3",
         active && "nav-item-active",
         active && collapsed && "nav-item-collapsed",
         className,
       )}>
-      <NavIcon name={item.key} />
+      <FinanceNavIcon name={item.key} />
       <span
         className={cn(
           "min-w-0 overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-300 ease-in-out",
@@ -189,6 +131,8 @@ function SidebarCollapseTab({
   );
 }
 
+export type { FinanceShellUser } from "@/contexts/finance-shell-user-context";
+
 export function FinanceAppShell({
   children,
   user,
@@ -199,17 +143,23 @@ export function FinanceAppShell({
   const pathname = usePathname() ?? "/";
   const locale = useLocale();
   const t = useTranslations("Finance.nav");
+  const isDesktopViewport = useIsDesktop();
 
   const [collapsed, setCollapsed] = useState(false);
   const [hydrated, setHydrated] = useState(false);
-  const [optimisticKey, setOptimisticKey] = useState<NavKey | null>(null);
+  const [optimisticKey, setOptimisticKey] = useState<FinanceNavKey | null>(
+    null,
+  );
   const [, startTransition] = useTransition();
   const reduceMotion = useReducedMotion();
+  const navLinkRefs = useRef<(HTMLAnchorElement | null)[]>([]);
 
   useEffect(() => {
-    const stored = getUserPref(SIDEBAR_COLLAPSED_STORAGE_BASE, user.id);
-    if (stored === "true") setCollapsed(true);
-    setHydrated(true);
+    queueMicrotask(() => {
+      const stored = getUserPref(SIDEBAR_COLLAPSED_STORAGE_BASE, user.id);
+      if (stored === "true") setCollapsed(true);
+      setHydrated(true);
+    });
   }, [user.id]);
 
   const toggleCollapsed = useCallback(() => {
@@ -234,8 +184,8 @@ export function FinanceAppShell({
     startTransition(() => setOptimisticKey(null));
   }, [pathname, startTransition]);
 
-  const isPathActive = (key: NavKey) => {
-    const href = pathByKey[key];
+  const isPathActive = (key: FinanceNavKey) => {
+    const href = FINANCE_PATH_BY_KEY[key];
     if (key === "dashboard") {
       return pathWithoutLocale === href || pathWithoutLocale === "/";
     }
@@ -244,28 +194,57 @@ export function FinanceAppShell({
     );
   };
 
-  const isActive = (key: NavKey) =>
+  const isActive = (key: FinanceNavKey) =>
     optimisticKey !== null ? optimisticKey === key : isPathActive(key);
 
-  const onNavClick = useCallback((key: NavKey) => {
+  const onSidebarNavKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLElement>) => {
+      if (!isDesktopViewport) return;
+      const links = navLinkRefs.current.filter((n): n is HTMLAnchorElement =>
+        Boolean(n),
+      );
+      if (!links.length) return;
+      const idx = links.findIndex((el) => el === document.activeElement);
+      if (idx === -1) return;
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        links[Math.min(idx + 1, links.length - 1)]?.focus();
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        links[Math.max(idx - 1, 0)]?.focus();
+      }
+    },
+    [isDesktopViewport],
+  );
+
+  const onNavClick = useCallback((key: FinanceNavKey) => {
     setOptimisticKey(key);
   }, []);
 
-  const navItems: { key: NavKey; label: string; mobileTab?: boolean }[] = [
-    { key: "dashboard", label: t("dashboard"), mobileTab: true },
-    { key: "expenses", label: t("expenses"), mobileTab: true },
-    { key: "incomes", label: t("incomes"), mobileTab: true },
-    { key: "goals", label: t("goals"), mobileTab: true },
+  const navItems: { key: FinanceNavKey; label: string }[] = [
+    { key: "dashboard", label: t("dashboard") },
+    { key: "expenses", label: t("expenses") },
+    { key: "incomes", label: t("incomes") },
+    { key: "goals", label: t("goals") },
     { key: "debts", label: t("debts") },
     { key: "reports", label: t("reports") },
     { key: "ai", label: t("ai") },
     { key: "notes", label: t("notes") },
-    { key: "settings", label: t("settings") },
   ];
 
-  const mobileTabs = [
-    ...navItems.filter((i) => i.mobileTab),
-    { key: "more" as const, label: t("more"), mobileTab: true },
+  const sheetLinks = [
+    ...navItems.map((item) => ({
+      key: item.key,
+      label: item.label,
+      href: FINANCE_PATH_BY_KEY[item.key],
+      active: isActive(item.key),
+    })),
+    {
+      key: "more" as const,
+      label: t("more"),
+      href: FINANCE_PATH_BY_KEY.more,
+      active: isActive("more"),
+    },
   ];
 
   const sidebarCollapsed = hydrated && collapsed;
@@ -276,96 +255,84 @@ export function FinanceAppShell({
   const sidebarAsideStyle: CSSProperties = {
     width: sidebarWidth,
     minWidth: 0,
-    flex: "0 0 auto",
     transition: prefersReducedMotion ? undefined : `width 300ms ${sidebarEase}`,
   };
 
   return (
     <TooltipProvider delayDuration={0}>
-      <div className="flex min-h-dvh overflow-x-visible bg-bg-app text-text-primary">
-        <aside
-          className={cn(
-            "sticky top-0 z-30 hidden h-dvh overflow-visible border-r border-border-default bg-bg-sidebar shadow-sm",
-            "relative min-w-0 md:flex",
-          )}
-          style={sidebarAsideStyle}>
-          <div
+      <FinanceShellUserProvider user={user}>
+        <div className="flex h-dvh max-h-dvh min-h-0 w-full overflow-hidden bg-bg-app text-text-primary">
+          <aside
             className={cn(
-              "flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden md:py-4",
-              "transition-[padding] duration-300 ease-in-out",
-              sidebarCollapsed ? "md:px-2" : "md:px-4",
-            )}>
-            <SidebarBrand userId={user.id} collapsed={sidebarCollapsed} />
-            <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
-              {navItems.map((item) => (
-                <SidebarNavLink
-                  key={item.key}
-                  item={item}
-                  href={pathByKey[item.key]}
-                  active={isActive(item.key)}
-                  collapsed={sidebarCollapsed}
-                  onNavigate={onNavClick}
-                  className={item.key === "settings" ? "mt-auto" : undefined}
-                />
-              ))}
-            </nav>
-            <div className="mt-4 hidden shrink-0 flex-col border-t border-border-subtle pt-4 md:flex">
-              <div
-                className={cn(
-                  sidebarCollapsed
-                    ? "flex justify-center"
-                    : "flex items-center",
-                )}>
-                <ThemeCycleToggle
-                  collapsed={sidebarCollapsed}
-                  appearance="sidebar"
-                />
+              "sticky top-0 z-40 hidden h-dvh shrink-0 border-r border-border-default bg-bg-sidebar shadow-sm md:flex",
+              "relative min-w-0 overflow-visible",
+            )}
+            style={sidebarAsideStyle}>
+            <div
+              className={cn(
+                "flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden md:py-4",
+                "transition-[padding] duration-300 ease-in-out",
+                sidebarCollapsed ? "md:px-2" : "md:px-4",
+              )}>
+              <SidebarBrand userId={user.id} collapsed={sidebarCollapsed} />
+              <nav
+                className="flex min-h-0 flex-1 touch-scroll flex-col gap-1 overflow-y-auto"
+                onKeyDown={onSidebarNavKeyDown}>
+                {navItems.map((item, index) => (
+                  <SidebarNavLink
+                    key={item.key}
+                    item={item}
+                    href={FINANCE_PATH_BY_KEY[item.key]}
+                    active={isActive(item.key)}
+                    collapsed={sidebarCollapsed}
+                    onNavigate={onNavClick}
+                    linkRef={(el) => {
+                      navLinkRefs.current[index] = el;
+                    }}
+                    className={item.key === "notes" ? "mt-auto" : undefined}
+                  />
+                ))}
+              </nav>
+              <div className="mt-4 hidden shrink-0 flex-col border-t border-border-subtle pt-4 md:flex">
+                <div
+                  className={cn(
+                    sidebarCollapsed
+                      ? "flex justify-center"
+                      : "flex items-center",
+                  )}>
+                  <ThemeCycleToggle
+                    collapsed={sidebarCollapsed}
+                    appearance="sidebar"
+                  />
+                </div>
               </div>
             </div>
-          </div>
-          <SidebarCollapseTab
-            collapsed={sidebarCollapsed}
-            onToggle={toggleCollapsed}
-            expandLabel={t("sidebarExpand")}
-            collapseLabel={t("sidebarCollapse")}
-          />
-        </aside>
+            <SidebarCollapseTab
+              collapsed={sidebarCollapsed}
+              onToggle={toggleCollapsed}
+              expandLabel={t("sidebarExpand")}
+              collapseLabel={t("sidebarCollapse")}
+            />
+          </aside>
 
-        <div
-          className={cn(
-            "flex min-w-0 flex-1 flex-col pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-0",
-            "transition-[margin,padding] duration-300 ease-in-out",
-          )}>
-          <div className="flex items-center justify-end border-b border-border-default bg-bg-sidebar px-4 py-2 shadow-sm md:hidden">
-            <ThemeCycleToggle collapsed />
-          </div>
-          {children}
+          <main
+            className={cn(
+              "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden",
+              "transition-[margin,padding] duration-300 ease-in-out",
+            )}>
+            <FinanceMobileTopBar
+              user={user}
+              sheetLinks={sheetLinks}
+              onNavClick={onNavClick}
+            />
+            <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
+              {children}
+            </div>
+          </main>
+
+          <AppQuickActions />
         </div>
-
-        <AppQuickActions />
-
-        <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border-default bg-bg-sidebar pb-[env(safe-area-inset-bottom)] shadow-sm md:hidden">
-          <div className="mx-auto flex max-w-lg items-stretch justify-around px-1 pt-1">
-            {mobileTabs.map((item) => {
-              const active = isActive(item.key);
-              return (
-                <Link
-                  key={item.key}
-                  href={pathByKey[item.key]}
-                  prefetch
-                  onClick={() => onNavClick(item.key)}
-                  className={cn(
-                    "flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-lg px-1 py-2 text-[10px] font-medium sm:text-xs",
-                    active ? "font-medium text-accent" : "text-text-muted",
-                  )}>
-                  <NavIcon name={item.key} />
-                  <span className="truncate">{item.label}</span>
-                </Link>
-              );
-            })}
-          </div>
-        </nav>
-      </div>
+      </FinanceShellUserProvider>
     </TooltipProvider>
   );
 }

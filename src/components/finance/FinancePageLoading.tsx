@@ -104,7 +104,7 @@ export function IncomesLoading() {
 
 export function GoalsLoading() {
   return (
-    <FinancePageShell className="space-y-6 pb-24 md:pb-8">
+    <FinancePageShell className="space-y-6">
       <PageHeaderSkeleton withActions />
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {Array.from({ length: 6 }).map((_, i) => (
@@ -117,7 +117,7 @@ export function GoalsLoading() {
 
 export function DebtsLoading() {
   return (
-    <FinancePageShell className="space-y-6 pb-24 md:pb-8">
+    <FinancePageShell className="space-y-6">
       <PageHeaderSkeleton withActions />
       <MetricCardsSkeleton count={3} />
       <div className="grid gap-4 md:grid-cols-2">
@@ -150,7 +150,7 @@ export function ReportsLoading() {
 
 export function NotesLoading() {
   return (
-    <FinancePageShell className="space-y-6 pb-24 md:pb-8">
+    <FinancePageShell className="space-y-6">
       <PageHeaderSkeleton withActions />
       <TabBarSkeleton />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">

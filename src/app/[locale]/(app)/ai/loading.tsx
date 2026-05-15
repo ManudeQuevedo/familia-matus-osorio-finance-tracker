@@ -3,7 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function AiLoading() {
   return (
-    <FinancePageShell className="space-y-6 pb-24 md:pb-8">
+    <FinancePageShell className="space-y-6">
       <Skeleton className="h-10 w-64" />
       <Skeleton className="h-10 w-full max-w-md" />
       <div className="space-y-2">

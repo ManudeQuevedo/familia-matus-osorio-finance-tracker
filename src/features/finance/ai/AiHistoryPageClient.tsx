@@ -4,11 +4,13 @@ import { BrainCircuit, MessageSquare, Search, Trash2 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 
+import { FinanceContentHeaderActions } from "@/components/finance/FinanceContentHeaderActions";
 import { FinancePageShell } from "@/components/finance/FinancePageShell";
 import { dispatchOpenAiChat } from "@/components/providers/AiChatProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { toastConfirmDestructive, notify } from "@/lib/toast";
 
 type ConversationItem = {
   id: string;
@@ -19,6 +21,7 @@ type ConversationItem = {
 
 export function AiHistoryPageClient() {
   const t = useTranslations("Finance.ai");
+  const tc = useTranslations("Finance.common");
   const locale = useLocale();
   const [query, setQuery] = useState("");
   const [debounced, setDebounced] = useState("");
@@ -38,7 +41,10 @@ export function AiHistoryPageClient() {
         ? `/api/ai/conversations?q=${encodeURIComponent(debounced)}`
         : "/api/ai/conversations";
       const res = await fetch(url);
-      if (!res.ok) return;
+      if (!res.ok) {
+        notify.generic.loadRetry();
+        return;
+      }
       const json = (await res.json()) as { conversations: ConversationItem[] };
       setItems(json.conversations ?? []);
     } finally {
@@ -47,7 +53,9 @@ export function AiHistoryPageClient() {
   }, [debounced]);
 
   useEffect(() => {
-    void load();
+    queueMicrotask(() => {
+      void load();
+    });
   }, [load]);
 
   const formatDate = (iso: string) =>
@@ -58,34 +66,48 @@ export function AiHistoryPageClient() {
 
   const onDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!window.confirm(t("history.deleteConfirm"))) return;
-    setDeletingId(id);
-    try {
-      const res = await fetch(
-        `/api/ai/conversations?id=${encodeURIComponent(id)}`,
-        { method: "DELETE" },
-      );
-      if (res.ok) setItems((prev) => prev.filter((c) => c.id !== id));
-    } finally {
-      setDeletingId(null);
-    }
+    toastConfirmDestructive({
+      title: t("history.deleteConfirm"),
+      confirmLabel: tc("delete"),
+      cancelLabel: tc("cancel"),
+      onConfirm: async () => {
+        setDeletingId(id);
+        try {
+          const res = await fetch(
+            `/api/ai/conversations?id=${encodeURIComponent(id)}`,
+            { method: "DELETE" },
+          );
+          if (res.ok) {
+            setItems((prev) => prev.filter((c) => c.id !== id));
+            notify.ai.conversationDeleted();
+          } else {
+            notify.ai.error();
+          }
+        } finally {
+          setDeletingId(null);
+        }
+      },
+    });
   };
 
   return (
-    <FinancePageShell className="pb-24 md:pb-8">
+    <FinancePageShell>
       <div className="mx-auto max-w-2xl space-y-6">
-        <header className="flex items-start gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent-muted">
-            <BrainCircuit className="h-6 w-6 text-accent" strokeWidth={2} />
+        <header className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-start gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent-muted">
+              <BrainCircuit className="h-6 w-6 text-accent" strokeWidth={2} />
+            </div>
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight">
+                {t("pageTitle")}
+              </h1>
+              <p className="mt-1 text-sm text-text-secondary dark:text-text-muted">
+                {t("pageSubtitle")}
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">
-              {t("pageTitle")}
-            </h1>
-            <p className="mt-1 text-sm text-text-secondary dark:text-text-muted">
-              {t("pageSubtitle")}
-            </p>
-          </div>
+          <FinanceContentHeaderActions />
         </header>
 
         <div className="relative">
@@ -122,8 +144,8 @@ export function AiHistoryPageClient() {
                   type="button"
                   onClick={() => dispatchOpenAiChat(c.id)}
                   className={cn(
-                    "group flex w-full items-start gap-3 rounded-xl border border-border-default bg-bg-card p-4 text-left transition-colors",
-                    "hover:border-accent/30 hover:bg-bg-card-nested dark:border-border-default bg-bg-card hover:bg-bg-card-hover/80",
+                    "group flex w-full items-start gap-3 rounded-xl border border-border-default bg-bg-card p-4 text-left transition-colors dark:border-border-default",
+                    "hover:border-accent/30 hover:bg-bg-card-hover/80",
                   )}>
                   <MessageSquare
                     className="mt-0.5 h-5 w-5 shrink-0 text-text-muted group-hover:text-accent"

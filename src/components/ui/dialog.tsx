@@ -26,15 +26,19 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, ...props }, ref) => (
+>(({ className, children, onEscapeKeyDown, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        "surface-modal fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 p-6 duration-200 sm:rounded-2xl",
+        "surface-modal touch-scroll fixed left-[50%] top-[50%] z-50 grid max-h-[min(90dvh,calc(100dvh-2rem))] w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto p-6 duration-200 sm:rounded-2xl",
         className,
       )}
+      onEscapeKeyDown={(e) => {
+        onEscapeKeyDown?.(e);
+        e.preventDefault();
+      }}
       {...props}>
       {children}
       <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm text-text-muted opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring/40 disabled:pointer-events-none">

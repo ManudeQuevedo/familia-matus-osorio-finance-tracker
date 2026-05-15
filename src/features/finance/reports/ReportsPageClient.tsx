@@ -19,6 +19,7 @@ import {
   YAxis,
 } from "recharts";
 
+import { FinanceContentHeaderActions } from "@/components/finance/FinanceContentHeaderActions";
 import { FinancePageShell } from "@/components/finance/FinancePageShell";
 import { useAccentChartColors } from "@/hooks/use-accent-chart-colors";
 import { Badge } from "@/components/ui/badge";
@@ -240,6 +241,7 @@ export function ReportsPageClient({
                 </SelectContent>
               </Select>
             </div>
+            <FinanceContentHeaderActions />
           </motion.div>
         </header>
 
@@ -505,7 +507,7 @@ export function ReportsPageClient({
                   initial={{ opacity: 0, x: -6 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.04 }}
-                  className="flex items-center justify-between rounded-xl border border-border-default bg-bg-card px-4 py-3 dark:border-border-default bg-bg-card">
+                  className="flex items-center justify-between rounded-xl border border-border-default bg-bg-card px-4 py-3 dark:border-border-default">
                   <motion.div>
                     <p className="font-medium">{item.name}</p>
                     <p className="text-xs text-text-muted">

@@ -72,7 +72,9 @@
     "disabling": "Desactivando…",
     "disableVerifyError": "Código no válido. MFA no se desactivó.",
     "unenrollError": "No se pudo desactivar MFA. Inténtalo de nuevo.",
-    "factorFriendlyName": "Autenticador"
+    "factorFriendlyName": "Autenticador",
+    "mfaActiveBadge": "Activo ✓",
+    "mfaChallengeError": "No se pudo verificar el código ahora. Inténtalo de nuevo."
   },
   "Finance": {
     "nav": {
@@ -91,11 +93,13 @@
       "you": "Tú",
       "sidebarCollapse": "Colapsar",
       "sidebarExpand": "Expandir",
+      "openNavigationMenu": "Abrir menú de navegación",
+      "navSheetTitle": "Navegación",
+      "appearance": "Apariencia",
       "userMenu": {
         "openMenu": "Menú de cuenta",
-        "myProfile": "👤 Mi perfil",
-        "security": "🔒 Seguridad",
-        "signOut": "🚪 Cerrar sesión"
+        "settings": "Configuración",
+        "signOut": "Cerrar sesión"
       }
     },
     "dashboardMeta": {
@@ -147,6 +151,26 @@
         "next": "Próximo pago",
         "empty": "No hay deudas activas.",
         "cta": "Ver plan de pagos"
+      },
+      "monthlyChart": {
+        "title": "Comparativo mensual",
+        "subtitle": "Gastos e ingresos mes a mes.",
+        "empty": "Aún no hay gastos en los últimos 12 meses.",
+        "emptyNotEnoughMonths": "Registra al menos 2 meses de gastos para ver el comparativo mensual.",
+        "loadError": "No se pudo cargar el comparativo.",
+        "rangeMonths": {
+          "3": "3 meses",
+          "6": "6 meses",
+          "12": "12 meses"
+        },
+        "categoriesLabel": "Categorías",
+        "categoriesAll": "Todas las categorías",
+        "categoriesCount": "{count} categorías",
+        "viewExpenses": "Gastos",
+        "viewCompare": "Ingresos vs gastos",
+        "tooltipIncome": "Ingresos",
+        "tooltipTotalExpenses": "Total gastos",
+        "legendIncome": "Ingresos"
       },
       "quick": {
         "open": "Gasto rápido",
@@ -562,8 +586,17 @@
       "metaDescription": "Perfil, preferencias, seguridad, cuentas y categorías.",
       "title": "Configuración",
       "subtitle": "Administra tu perfil, preferencias y cuentas bancarias.",
+      "modalTitle": "Configuración",
+      "close": "Cerrar",
+      "modalNavLabel": "Secciones de configuración",
       "saved": "Cambios guardados.",
       "loadError": "No se pudo cargar la configuración.",
+      "tabs": {
+        "perfil": "Perfil",
+        "seguridad": "Seguridad",
+        "preferencias": "Preferencias",
+        "datos": "Datos"
+      },
       "profile": {
         "title": "Perfil",
         "description": "Tu información personal en la app.",
@@ -576,6 +609,7 @@
         "title": "Preferencias",
         "description": "Idioma, tema y moneda de visualización.",
         "language": "Idioma",
+        "languageHint": "El idioma de la interfaz. Puede tardar un segundo en aplicarse.",
         "theme": "Tema",
         "themeLight": "Claro",
         "themeDark": "Oscuro",
@@ -594,6 +628,7 @@
         "title": "Seguridad",
         "description": "Contraseña y autenticación en dos pasos.",
         "passwordTitle": "Cambiar contraseña",
+        "mfaSectionTitle": "Autenticación en dos pasos",
         "currentPassword": "Contraseña actual",
         "newPassword": "Nueva contraseña",
         "confirmPassword": "Confirmar contraseña",
@@ -631,6 +666,7 @@
         "subName": "Nombre de subcategoría",
         "subDescription": "Descripción (opcional)",
         "addSub": "Agregar subcategoría",
+        "deleteConfirm": "¿Eliminar esta subcategoría?",
         "active": "Activa",
         "inactive": "Inactiva"
       },

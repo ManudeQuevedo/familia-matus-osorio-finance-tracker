@@ -4,8 +4,11 @@ import {
   FinanceAppShell,
   type FinanceShellUser,
 } from "@/components/finance/FinanceAppShell";
+import { SettingsModalHost } from "@/components/finance/SettingsModal";
 import { PageTransition } from "@/components/motion/PageTransition";
+import { SettingsModalProvider } from "@/contexts/settings-modal-context";
 import { QueryProvider } from "@/components/providers/QueryProvider";
+import { ToastHooksBridge } from "@/components/providers/ToastHooksBridge";
 import {
   ProfileThemeBootstrap,
   type ThemePreference,
@@ -13,6 +16,7 @@ import {
 import { AiChatProvider } from "@/components/providers/AiChatProvider";
 import { UserPreferencesProvider } from "@/components/providers/UserPreferencesProvider";
 import { normalizeAccentColor } from "@/lib/finance/accent";
+import { fetchSettingsSnapshot } from "@/lib/finance/settings-queries";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export default async function AppGroupLayout({
@@ -56,6 +60,10 @@ export default async function AppGroupLayout({
 
   const initialAccent = normalizeAccentColor(profile?.accent_color);
 
+  const localeTag = locale === "en" ? "en" : "es";
+  const { data: settingsSnapshot, error: settingsLoadError } =
+    await fetchSettingsSnapshot(supabase, user.id, localeTag);
+
   return (
     <QueryProvider>
       <ProfileThemeBootstrap userId={user.id} initialTheme={initialTheme} />
@@ -63,11 +71,19 @@ export default async function AppGroupLayout({
         userId={user.id}
         initialAvatarUrl={profile?.avatar_url ?? null}
         initialAccentColor={initialAccent}>
-        <AiChatProvider>
-          <FinanceAppShell user={shellUser}>
-            <PageTransition>{children}</PageTransition>
-          </FinanceAppShell>
-        </AiChatProvider>
+        <SettingsModalProvider>
+          <ToastHooksBridge />
+          <AiChatProvider>
+            <SettingsModalHost
+              locale={locale}
+              initial={settingsSnapshot}
+              loadError={settingsLoadError}
+            />
+            <FinanceAppShell user={shellUser}>
+              <PageTransition>{children}</PageTransition>
+            </FinanceAppShell>
+          </AiChatProvider>
+        </SettingsModalProvider>
       </UserPreferencesProvider>
     </QueryProvider>
   );

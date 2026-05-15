@@ -12,8 +12,16 @@ import {
   Zap,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from "react";
 
+import { triggerHaptic } from "@/lib/haptic";
+import { useEscape } from "@/lib/hooks/use-escape";
 import { cn } from "@/lib/utils";
 
 export type QuickActionId =
@@ -66,6 +74,8 @@ type FabActionPillProps = {
   isSelecting: boolean;
   selectedId: QuickActionId | null;
   onSelect: (id: QuickActionId) => void;
+  onPillKeyDown: (e: KeyboardEvent<HTMLButtonElement>, index: number) => void;
+  pillRef: (el: HTMLButtonElement | null) => void;
 };
 
 function FabActionPill({
@@ -75,6 +85,8 @@ function FabActionPill({
   isSelecting,
   selectedId,
   onSelect,
+  onPillKeyDown,
+  pillRef,
 }: FabActionPillProps) {
   const Icon = action.icon;
   const isSelected = selectedId === action.id;
@@ -83,11 +95,12 @@ function FabActionPill({
   return (
     <motion.button
       type="button"
+      ref={pillRef}
       initial={{ opacity: 0, y: 16, scale: 0.85 }}
       animate={{
         opacity: isOther ? 0 : 1,
         y: 0,
-        scale: isSelecting && isSelected ? 0.97 : 1,
+        scale: isSelecting && isSelected ? 0.95 : 1,
       }}
       exit={{ opacity: 0, y: 16, scale: 0.85 }}
       transition={{
@@ -97,12 +110,14 @@ function FabActionPill({
         scale: isSelecting && isSelected ? PILL_TAP : PILL_INTERACTION,
       }}
       whileHover={!isSelecting ? { scale: 1.03 } : undefined}
-      whileTap={!isSelecting ? { scale: 0.97 } : undefined}
+      whileTap={!isSelecting ? { scale: 0.95 } : undefined}
       onClick={() => onSelect(action.id)}
+      onKeyDown={(e) => onPillKeyDown(e, index)}
       className={cn(
-        "group flex min-h-11 cursor-pointer items-center gap-3 rounded-2xl border border-border-default bg-bg-modal px-5 py-3 text-sm font-medium text-text-primary shadow-md",
+        "group flex min-h-11 min-w-[min(100%,280px)] cursor-pointer items-center gap-3 rounded-2xl border border-border-default bg-bg-modal px-5 py-3 text-sm font-medium text-text-primary shadow-md",
         "transition-[background-color,border-color,color] duration-150 ease-out",
         "hover:border-accent/40 hover:bg-bg-card-hover hover:text-accent",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
       )}>
       <Icon
         className="h-[18px] w-[18px] shrink-0 text-muted-foreground transition-colors duration-150 ease-out group-hover:text-accent"
@@ -125,6 +140,7 @@ export function QuickActionFab({ onSelect, className }: QuickActionFabProps) {
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectedId, setSelectedId] = useState<QuickActionId | null>(null);
   const selectingRef = useRef(false);
+  const pillRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   const close = useCallback(() => {
     setOpen(false);
@@ -133,20 +149,37 @@ export function QuickActionFab({ onSelect, className }: QuickActionFabProps) {
     selectingRef.current = false;
   }, []);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && open) {
-        close();
-      }
-    };
+  useEscape(close, open);
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [open, close]);
+  useEffect(() => {
+    if (!open || isSelecting) return;
+    const id = requestAnimationFrame(() => pillRefs.current[0]?.focus());
+    return () => cancelAnimationFrame(id);
+  }, [open, isSelecting]);
+
+  const focusPillAt = useCallback((index: number) => {
+    const i = Math.max(0, Math.min(index, ACTIONS.length - 1));
+    pillRefs.current[i]?.focus();
+  }, []);
+
+  const onPillKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLButtonElement>, index: number) => {
+      if (!open || isSelecting) return;
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        focusPillAt(index + 1);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        focusPillAt(index - 1);
+      }
+    },
+    [open, isSelecting, focusPillAt],
+  );
 
   const handleSelect = useCallback(
     (id: QuickActionId) => {
       if (selectingRef.current) return;
+      triggerHaptic("medium");
       selectingRef.current = true;
       setSelectedId(id);
       setIsSelecting(true);
@@ -184,7 +217,7 @@ export function QuickActionFab({ onSelect, className }: QuickActionFabProps) {
 
       <motion.div
         className={cn(
-          "fixed bottom-20 right-4 z-50 flex flex-col items-end gap-3 md:bottom-8 md:right-8",
+          "fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] right-4 z-50 flex flex-col items-end gap-3 md:bottom-8 md:right-8",
           className,
         )}
         layout>
@@ -199,6 +232,10 @@ export function QuickActionFab({ onSelect, className }: QuickActionFabProps) {
                   isSelecting={isSelecting}
                   selectedId={selectedId}
                   onSelect={handleSelect}
+                  onPillKeyDown={onPillKeyDown}
+                  pillRef={(el) => {
+                    pillRefs.current[index] = el;
+                  }}
                 />
               ))
             : null}
@@ -210,10 +247,15 @@ export function QuickActionFab({ onSelect, className }: QuickActionFabProps) {
           className="flex h-14 w-14 shrink-0 cursor-pointer items-center justify-center rounded-full border-0 bg-accent text-accent-foreground shadow-lg"
           onClick={() => {
             if (isSelecting) return;
-            setOpen((prev) => !prev);
+            setOpen((prev) => {
+              const next = !prev;
+              if (next) triggerHaptic("light");
+              return next;
+            });
           }}
           aria-expanded={open}
           aria-label={open ? t("closeMenu") : t("openMenu")}
+          aria-haspopup="menu"
           whileTap={{ scale: 0.95 }}
           transition={PILL_TAP}>
           <motion.span

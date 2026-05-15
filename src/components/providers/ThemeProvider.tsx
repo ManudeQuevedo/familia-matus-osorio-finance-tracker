@@ -49,7 +49,7 @@ export function useThemePreference(serverTheme: ThemePreference = "system") {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    queueMicrotask(() => setMounted(true));
   }, []);
 
   const setTheme = useCallback(

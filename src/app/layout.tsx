@@ -26,9 +26,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" data-accent="emerald" suppressHydrationWarning>
+    <html
+      lang="en"
+      data-accent="emerald"
+      suppressHydrationWarning
+      className="h-full">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} flex min-h-full flex-col bg-background font-sans text-foreground antialiased transition-colors duration-200`}>
+        className={`${geistSans.variable} ${geistMono.variable} flex h-full min-h-0 flex-col bg-background font-sans text-foreground antialiased transition-colors duration-200`}>
         <FinanceThemeProvider>
           <ThemeRippleProvider>{children}</ThemeRippleProvider>
         </FinanceThemeProvider>

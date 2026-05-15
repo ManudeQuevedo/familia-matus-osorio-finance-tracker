@@ -22,7 +22,7 @@ export function noteCardClass(color: string): string {
     case "purple":
       return "bg-violet-50/90 border-violet-200/80 dark:bg-violet-950/40 dark:border-violet-900/60";
     default:
-      return "bg-card border-border-default dark:border-border-default";
+      return "bg-card border-border-default";
   }
 }
 

@@ -72,7 +72,9 @@
     "disabling": "Disabling…",
     "disableVerifyError": "Invalid code. MFA was not disabled.",
     "unenrollError": "Could not disable MFA. Try again.",
-    "factorFriendlyName": "Authenticator"
+    "factorFriendlyName": "Authenticator",
+    "mfaActiveBadge": "Active ✓",
+    "mfaChallengeError": "Could not verify the code right now. Try again."
   },
   "Finance": {
     "nav": {
@@ -91,11 +93,13 @@
       "you": "You",
       "sidebarCollapse": "Collapse",
       "sidebarExpand": "Expand",
+      "openNavigationMenu": "Open navigation menu",
+      "navSheetTitle": "Navigation",
+      "appearance": "Appearance",
       "userMenu": {
         "openMenu": "Account menu",
-        "myProfile": "👤 My profile",
-        "security": "🔒 Security",
-        "signOut": "🚪 Sign out"
+        "settings": "Settings",
+        "signOut": "Sign out"
       }
     },
     "dashboardMeta": {
@@ -147,6 +151,26 @@
         "next": "Next payment",
         "empty": "No active debts.",
         "cta": "View payment plan"
+      },
+      "monthlyChart": {
+        "title": "Monthly comparison",
+        "subtitle": "Month-by-month spending and income.",
+        "empty": "No expense data in the last 12 months yet.",
+        "emptyNotEnoughMonths": "Log at least 2 months of expenses to see the monthly comparison.",
+        "loadError": "Could not load the comparison chart.",
+        "rangeMonths": {
+          "3": "3 months",
+          "6": "6 months",
+          "12": "12 months"
+        },
+        "categoriesLabel": "Categories",
+        "categoriesAll": "All categories",
+        "categoriesCount": "{count} categories",
+        "viewExpenses": "Expenses",
+        "viewCompare": "Income vs expenses",
+        "tooltipIncome": "Income",
+        "tooltipTotalExpenses": "Total expenses",
+        "legendIncome": "Income"
       },
       "quick": {
         "open": "Quick expense",
@@ -562,8 +586,17 @@
       "metaDescription": "Profile, preferences, security, accounts, and categories.",
       "title": "Settings",
       "subtitle": "Manage your profile, preferences, and bank accounts.",
+      "modalTitle": "Settings",
+      "close": "Close",
+      "modalNavLabel": "Settings sections",
       "saved": "Changes saved.",
       "loadError": "Could not load settings.",
+      "tabs": {
+        "perfil": "Profile",
+        "seguridad": "Security",
+        "preferencias": "Preferences",
+        "datos": "Data"
+      },
       "profile": {
         "title": "Profile",
         "description": "Your personal information in the app.",
@@ -576,6 +609,7 @@
         "title": "Preferences",
         "description": "Language, theme, and display currency.",
         "language": "Language",
+        "languageHint": "Interface language. May take a moment to apply.",
         "theme": "Theme",
         "themeLight": "Light",
         "themeDark": "Dark",
@@ -594,6 +628,7 @@
         "title": "Security",
         "description": "Password and two-factor authentication.",
         "passwordTitle": "Change password",
+        "mfaSectionTitle": "Two-factor authentication",
         "currentPassword": "Current password",
         "newPassword": "New password",
         "confirmPassword": "Confirm password",
@@ -631,6 +666,7 @@
         "subName": "Subcategory name",
         "subDescription": "Description (optional)",
         "addSub": "Add subcategory",
+        "deleteConfirm": "Delete this subcategory?",
         "active": "Active",
         "inactive": "Inactive"
       },

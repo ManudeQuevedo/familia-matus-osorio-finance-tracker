@@ -289,3 +289,24 @@ export async function toggleSubcategoryActive(input: {
   revalidateSettings(input.locale);
   return { ok: true as const };
 }
+
+export async function deleteCustomSubcategory(input: {
+  locale: string;
+  id: string;
+}) {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "unauthorized" };
+
+  const { error } = await supabase
+    .from("subcategories")
+    .delete()
+    .eq("id", input.id)
+    .eq("user_id", user.id);
+
+  if (error) return { ok: false as const, error: error.message };
+  revalidateSettings(input.locale);
+  return { ok: true as const };
+}

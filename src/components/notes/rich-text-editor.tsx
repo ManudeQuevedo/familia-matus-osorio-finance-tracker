@@ -61,6 +61,7 @@ import {
   getNoteFileSignedUrl,
   uploadNoteFile,
 } from "@/lib/finance/note-storage";
+import { notify } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
 const CustomImage = Image.extend({
@@ -126,8 +127,10 @@ export function RichTextEditor(props: RichTextEditorProps) {
 
   useEffect(() => {
     let cancelled = false;
-    setDocReady(false);
     void (async () => {
+      await Promise.resolve();
+      if (cancelled) return;
+      setDocReady(false);
       const base = props.initialContent ?? EMPTY_TIPTAP_DOC;
       const resolved = await resolveImageUrls(base);
       if (!cancelled) {
@@ -144,11 +147,11 @@ export function RichTextEditor(props: RichTextEditorProps) {
     return (
       <div
         className={cn(
-          "animate-pulse rounded-lg bg-bg-card-hover p-8 bg-bg-card-nested",
+          "animate-pulse rounded-lg bg-bg-card-nested p-8",
           props.className,
         )}>
-        <div className="h-8 w-full rounded bg-zinc-200 bg-bg-card-hover" />
-        <div className="mt-4 h-48 rounded bg-zinc-200 bg-bg-card-hover" />
+        <div className="h-8 w-full rounded bg-bg-card-hover" />
+        <div className="mt-4 h-48 rounded bg-bg-card-hover" />
       </div>
     );
   }
@@ -257,7 +260,10 @@ function RichTextEditorContent({
     if (file.size > 500 * 1024) {
       const supabase = createSupabaseBrowserClient();
       const result = await uploadNoteFile(supabase, userId, noteId, file);
-      if ("error" in result) return;
+      if ("error" in result) {
+        notify.notes.attachmentError();
+        return;
+      }
       editor
         .chain()
         .focus()
@@ -280,7 +286,10 @@ function RichTextEditorContent({
   const uploadAttachment = async (file: File) => {
     const supabase = createSupabaseBrowserClient();
     const result = await uploadNoteFile(supabase, userId, noteId, file);
-    if ("error" in result) return;
+    if ("error" in result) {
+      notify.notes.attachmentError();
+      return;
+    }
     const meta: NoteAttachmentMeta = {
       name: file.name,
       path: result.path,
@@ -346,11 +355,11 @@ function RichTextEditorContent({
     return (
       <div
         className={cn(
-          "animate-pulse rounded-lg bg-bg-card-hover p-8 bg-bg-card-nested",
+          "animate-pulse rounded-lg bg-bg-card-nested p-8",
           className,
         )}>
-        <div className="h-8 w-full rounded bg-zinc-200 bg-bg-card-hover" />
-        <div className="mt-4 h-48 rounded bg-zinc-200 bg-bg-card-hover" />
+        <div className="h-8 w-full rounded bg-bg-card-hover" />
+        <div className="mt-4 h-48 rounded bg-bg-card-hover" />
       </div>
     );
   }
@@ -529,7 +538,7 @@ function RichTextEditorContent({
               </Button>
             </div>
             <div
-              className="overflow-hidden rounded-lg border border-border-default bg-bg-card dark:border-border-default bg-bg-card"
+              className="overflow-hidden rounded-lg border border-border-default bg-bg-card dark:border-border-default"
               dangerouslySetInnerHTML={{ __html: sketchData.svg }}
             />
           </div>

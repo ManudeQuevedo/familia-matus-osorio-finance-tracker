@@ -24,14 +24,17 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FinanceContentHeaderActions } from "@/components/finance/FinanceContentHeaderActions";
+import { FinancePageShell } from "@/components/finance/FinancePageShell";
 import {
   activateDebtPlan,
   createDebt,
   registerDebtPayment,
 } from "@/lib/finance/actions";
-import { formatMxn, formatShortDate } from "@/lib/finance/format";
+import { notify } from "@/lib/toast";
 import type { DebtsSnapshot, DebtListItem } from "@/lib/finance/debts-queries";
-import { FinancePageShell } from "@/components/finance/FinancePageShell";
+import { formatMxn, formatShortDate } from "@/lib/finance/format";
+import { useEscape } from "@/lib/hooks/use-escape";
 import { cn } from "@/lib/utils";
 
 function useIsMobile(breakpoint = 768) {
@@ -101,6 +104,10 @@ export function DebtsPageClient({
   const [isExtra, setIsExtra] = useState(false);
   const [payNotes, setPayNotes] = useState("");
 
+  useEscape(() => setNewOpen(false), newOpen);
+  useEscape(() => setPayDebt(null), !!payDebt);
+  useEscape(() => setPlanOpen(false), planOpen);
+
   const { data, isError, refetch, isFetching } = useQuery({
     queryKey: ["finance-debts", year, month, intlLocale],
     queryFn: async () => {
@@ -135,6 +142,7 @@ export function DebtsPageClient({
       });
       if (!res.ok || !res.body) {
         setAiText(t("ai.error"));
+        notify.ai.error();
         return;
       }
       const reader = res.body.getReader();
@@ -149,10 +157,11 @@ export function DebtsPageClient({
       await queryClient.invalidateQueries({ queryKey: ["finance-debts"] });
     } catch {
       setAiText(t("ai.error"));
+      notify.ai.error();
     } finally {
       setAiLoading(false);
     }
-  }, [firstPlan?.analysis, intlLocale, queryClient, t]);
+  }, [firstPlan, intlLocale, queryClient, t]);
 
   const displayPlan = (snapshot?.debts[0]?.ai_plan ?? firstPlan) as
     | AiPlan
@@ -177,9 +186,12 @@ export function DebtsPageClient({
     });
     setSaving(false);
     if (res.ok) {
+      notify.debts.addSuccess(name.trim() || "Deuda");
       setNewOpen(false);
       setName("");
       await queryClient.invalidateQueries({ queryKey: ["finance-debts"] });
+    } else {
+      notify.debts.addError();
     }
   };
 
@@ -196,9 +208,19 @@ export function DebtsPageClient({
     });
     setSaving(false);
     if (res.ok) {
+      const debtLabel = payDebt.name;
       setPayDebt(null);
       setPayAmount("");
       await queryClient.invalidateQueries({ queryKey: ["finance-debts"] });
+      const paymentAmount = Number.parseFloat(payAmount.replace(",", "."));
+      const amtStr = formatMxn(intlLocale, paymentAmount);
+      if ("paidOff" in res && res.paidOff) {
+        notify.debts.paidOffSuccess(debtLabel);
+      } else {
+        notify.debts.paymentSuccess(amtStr, debtLabel);
+      }
+    } else {
+      notify.debts.paymentError();
     }
   };
 
@@ -224,7 +246,7 @@ export function DebtsPageClient({
   }
 
   return (
-    <FinancePageShell className="pb-24 md:pb-8">
+    <FinancePageShell>
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -241,7 +263,7 @@ export function DebtsPageClient({
             </h1>
             <p className="mt-1 text-sm text-text-muted">{t("subtitle")}</p>
           </motion.div>
-          <div className="flex shrink-0 gap-2">
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -254,6 +276,7 @@ export function DebtsPageClient({
               <Plus className="mr-1 h-4 w-4" />
               {t("add")}
             </Button>
+            <FinanceContentHeaderActions />
           </div>
         </motion.header>
 
@@ -346,7 +369,7 @@ export function DebtsPageClient({
                   </motion.div>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <div className="h-2 overflow-hidden rounded-full bg-bg-card-hover bg-bg-card-hover">
+                  <div className="h-2 overflow-hidden rounded-full bg-bg-card-hover">
                     <motion.div
                       className="h-full rounded-full bg-red-500"
                       initial={{ width: 0 }}
@@ -417,6 +440,7 @@ export function DebtsPageClient({
                   animate={{ opacity: 1, x: 0 }}>
                   <Label>{t("form.totalAmount")}</Label>
                   <Input
+                    type="number"
                     inputMode="decimal"
                     value={totalAmount}
                     onChange={(e) => setTotalAmount(e.target.value)}
@@ -428,6 +452,7 @@ export function DebtsPageClient({
                   transition={{ delay: 0.08 }}>
                   <Label>{t("form.currentBalance")}</Label>
                   <Input
+                    type="number"
                     inputMode="decimal"
                     value={currentBalance}
                     onChange={(e) => setCurrentBalance(e.target.value)}
@@ -438,6 +463,7 @@ export function DebtsPageClient({
                 <div>
                   <Label>{t("form.monthlyPayment")}</Label>
                   <Input
+                    type="number"
                     inputMode="decimal"
                     value={monthlyPayment}
                     onChange={(e) => setMonthlyPayment(e.target.value)}
@@ -446,6 +472,7 @@ export function DebtsPageClient({
                 <div>
                   <Label>{t("form.interestRate")}</Label>
                   <Input
+                    type="number"
                     inputMode="decimal"
                     value={interestRate}
                     onChange={(e) => setInterestRate(e.target.value)}
@@ -489,6 +516,7 @@ export function DebtsPageClient({
               <div>
                 <Label>{t("payment.amount")}</Label>
                 <Input
+                  type="number"
                   inputMode="decimal"
                   value={payAmount}
                   onChange={(e) => setPayAmount(e.target.value)}
@@ -583,7 +611,7 @@ export function DebtsPageClient({
                         <p className="mb-2 text-sm font-medium">
                           {t("ai.timeline")}
                         </p>
-                        <ol className="relative border-l border-border-default pl-4 border-border-default">
+                        <ol className="relative border-l border-border-default pl-4">
                           {displayPlan.timeline.map((item, idx) => (
                             <motion.li
                               key={`${item.debt}-${idx}`}
@@ -605,7 +633,7 @@ export function DebtsPageClient({
                     {displayPlan.comparison ? (
                       <div className="overflow-x-auto rounded-lg border border-border-default">
                         <table className="w-full text-left text-sm">
-                          <thead className="bg-bg-card-nested bg-bg-card-nested">
+                          <thead className="bg-bg-card-nested">
                             <tr>
                               <th className="px-3 py-2" />
                               <th className="px-3 py-2">

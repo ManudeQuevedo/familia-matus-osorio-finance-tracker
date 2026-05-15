@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { createIncome } from "@/lib/finance/actions";
+import { notify } from "@/lib/toast";
 import {
   formatMxn,
   formatMonthYear,
@@ -26,6 +27,7 @@ import {
   formatUsd,
 } from "@/lib/finance/format";
 import type { HouseholdPerson } from "@/lib/finance/household";
+import { FinanceContentHeaderActions } from "@/components/finance/FinanceContentHeaderActions";
 import { FinancePageShell } from "@/components/finance/FinancePageShell";
 import type { IncomesSnapshot } from "@/lib/finance/incomes-queries";
 
@@ -132,7 +134,11 @@ export function IncomesPageClient({
   };
 
   const onSubmit = async () => {
-    if (!snapshot || !snapshot.accounts.length) return;
+    if (!snapshot) return;
+    if (!snapshot.accounts.length) {
+      notify.income.missingAccount();
+      return;
+    }
     const acc = snapshot.accounts[0]!.id;
 
     let payload: Parameters<typeof createIncome>[0];
@@ -179,6 +185,13 @@ export function IncomesPageClient({
       setAmountMxn("");
       setNotes("");
       invalidate();
+      const label =
+        who === "manuel"
+          ? formatMxn(intlLocale, computedMxn)
+          : formatMxn(intlLocale, payload.amountMxn);
+      notify.income.addSuccess(label);
+    } else {
+      notify.income.addError();
     }
   };
 
@@ -223,11 +236,14 @@ export function IncomesPageClient({
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         className="space-y-8">
-        <header>
-          <h1 className="text-2xl font-semibold">{t("title")}</h1>
-          <p className="mt-1 text-sm text-text-muted">
-            {formatMonthYear(intlLocale, viewYear, viewMonth)}
-          </p>
+        <header className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-semibold">{t("title")}</h1>
+            <p className="mt-1 text-sm text-text-muted">
+              {formatMonthYear(intlLocale, viewYear, viewMonth)}
+            </p>
+          </div>
+          <FinanceContentHeaderActions />
         </header>
 
         <section>
@@ -274,7 +290,7 @@ export function IncomesPageClient({
                   <div>
                     <Label>{t("form.amountMxnComputed")}</Label>
                     <Input
-                      className="mt-1 bg-bg-card-nested bg-bg-card-nested"
+                      className="mt-1 bg-bg-card-nested"
                       readOnly
                       value={
                         computedMxn > 0
@@ -453,7 +469,7 @@ export function IncomesPageClient({
                     {rows.map((row) => (
                       <li
                         key={row.id}
-                        className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border-default bg-bg-card px-4 py-3 dark:border-border-default bg-bg-card">
+                        className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border-default bg-bg-card px-4 py-3 dark:border-border-default">
                         <div>
                           <p className="font-medium">{typeLabel(row.type)}</p>
                           <p className="text-xs text-text-muted">
