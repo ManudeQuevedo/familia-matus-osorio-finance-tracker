@@ -1,0 +1,693 @@
+{
+  "Metadata": {
+    "title": "Finanzas — Finanzas familiares",
+    "description": "Panel familiar de finanzas con acceso seguro y MFA opcional."
+  },
+  "Nav": {
+    "brand": "Finanzas",
+    "home": "Inicio",
+    "dashboard": "Panel",
+    "security": "Seguridad",
+    "signOut": "Cerrar sesión",
+    "locale": "Idioma"
+  },
+  "Auth": {
+    "metaTitle": "Iniciar sesión · Finanzas",
+    "metaDescription": "Acceso al panel familiar de finanzas.",
+    "brandEyebrow": "Finanzas familiares",
+    "brandTitle": "Familia Matus Osorio",
+    "brandSubtitle": "Finanzas del hogar",
+    "cardTitleSignIn": "Iniciar sesión",
+    "cardDescriptionSignIn": "Usa tu correo y contraseña.",
+    "cardTitleMfa": "Verificación en dos pasos",
+    "cardDescriptionMfa": "Ingresa el código de tu app de autenticación.",
+    "email": "Correo",
+    "password": "Contraseña",
+    "showPassword": "Mostrar contraseña",
+    "hidePassword": "Ocultar contraseña",
+    "signIn": "Iniciar sesión",
+    "signingIn": "Iniciando sesión…",
+    "unauthorizedEmail": "Acceso no autorizado para este correo.",
+    "invalidCredentials": "Correo o contraseña incorrectos.",
+    "genericError": "Algo salió mal. Inténtalo de nuevo.",
+    "totpLabel": "Código de autenticación",
+    "verify": "Verificar",
+    "verifying": "Verificando…",
+    "back": "Volver",
+    "mfaInvalid": "Código no válido. Inténtalo de nuevo.",
+    "mfaMissingFactor": "No se pudo cargar tu factor MFA. Contacta a soporte."
+  },
+  "Dashboard": {
+    "metaTitle": "Panel · Finanzas",
+    "metaDescription": "Resumen de finanzas familiares.",
+    "badge": "Finanzas",
+    "title": "Panel",
+    "subtitle": "Sesión iniciada como {email}.",
+    "securityCta": "Ajustes de seguridad"
+  },
+  "Security": {
+    "metaTitle": "Seguridad · Finanzas",
+    "metaDescription": "Gestiona la autenticación en dos pasos.",
+    "title": "Seguridad",
+    "subtitle": "Protege tu cuenta con contraseñas de un solo uso basadas en tiempo (TOTP).",
+    "mfaTitle": "Autenticador (TOTP)",
+    "mfaActiveDescription": "La autenticación en dos pasos está activada en tu cuenta.",
+    "mfaInactiveDescription": "Añade un segundo paso al inicio de sesión con Google Authenticator, Authy u otra app TOTP.",
+    "loading": "Cargando ajustes de seguridad…",
+    "factorsError": "No se pudieron cargar los factores MFA.",
+    "noVerifiedFactor": "No hay autenticador verificado.",
+    "enableMfa": "Activar MFA",
+    "starting": "Preparando…",
+    "scanQr": "Escanea este código QR con tu app de autenticación y luego introduce el código de 6 dígitos para confirmar.",
+    "qrAlt": "Código QR TOTP",
+    "manualSecret": "Si no puedes escanear el QR, introduce este secreto manualmente.",
+    "verificationCode": "Código de 6 dígitos",
+    "confirmEnrollment": "Confirmar y activar",
+    "verifying": "Verificando…",
+    "cancel": "Cancelar",
+    "enrollStartError": "No se pudo iniciar el registro MFA.",
+    "enrollVerifyError": "El código no coincide. Inténtalo de nuevo.",
+    "disableIntro": "Introduce un código nuevo de tu autenticador para desactivar MFA.",
+    "disableMfa": "Desactivar MFA",
+    "disabling": "Desactivando…",
+    "disableVerifyError": "Código no válido. MFA no se desactivó.",
+    "unenrollError": "No se pudo desactivar MFA. Inténtalo de nuevo.",
+    "factorFriendlyName": "Autenticador"
+  },
+  "Finance": {
+    "nav": {
+      "brand": "Finanzas",
+      "dashboard": "Panel",
+      "expenses": "Gastos",
+      "incomes": "Ingresos",
+      "goals": "Metas",
+      "debts": "Deudas",
+      "reports": "Reportes",
+      "ai": "IA Financiera",
+      "notes": "Notas",
+      "settings": "Configuración",
+      "more": "Más",
+      "cancel": "Cancelar",
+      "you": "Tú",
+      "sidebarCollapse": "Colapsar",
+      "sidebarExpand": "Expandir"
+    },
+    "dashboardMeta": {
+      "title": "Panel · Finanzas",
+      "description": "Resumen familiar con saldos y metas en vivo."
+    },
+    "dashboard": {
+      "greetingMorning": "Buenos días, {name}",
+      "greetingAfternoon": "Buenas tardes, {name}",
+      "greetingEvening": "Buenas noches, {name}",
+      "fallbackName": "familia",
+      "notifications": "Notificaciones",
+      "remindersToday": "Recordatorios de hoy",
+      "remindersEmpty": "No hay recordatorios para hoy.",
+      "viewAllNotes": "Ver todas las notas",
+      "empty": "Aún no pudimos cargar tu panel.",
+      "error": "Algo salió mal al actualizar.",
+      "retry": "Reintentar",
+      "summary": {
+        "income": { "title": "Ingresos del mes" },
+        "expense": { "title": "Gastos del mes" },
+        "balance": { "title": "Balance" },
+        "savingsRate": { "title": "Tasa de ahorro" }
+      },
+      "paycheck": {
+        "title": "Quincenas — próximos pagos",
+        "q1": "Quincena 1 (1–15)",
+        "q2": "Quincena 2 (15–30)",
+        "empty": "No hay gastos programados en esta quincena.",
+        "paid": "Pagado",
+        "pending": "Pendiente",
+        "markPaid": "Marcar como pagado",
+        "total": "Total de la quincena"
+      },
+      "categories": {
+        "title": "Gastos por categoría",
+        "empty": "Sin gastos por categoría este mes."
+      },
+      "goals": {
+        "title": "Metas",
+        "empty": "No hay metas activas.",
+        "viewAll": "Ver todas",
+        "add": "Agregar meta",
+        "monthsLeft": "{count, plural, one {# mes restante} other {# meses restantes}}"
+      },
+      "debts": {
+        "title": "Deudas",
+        "total": "Deuda actual total",
+        "next": "Próximo pago",
+        "empty": "No hay deudas activas.",
+        "cta": "Ver plan de pagos"
+      },
+      "quick": {
+        "open": "Gasto rápido",
+        "title": "Registrar gasto rápido",
+        "amount": "Monto (MXN)",
+        "category": "Categoría",
+        "subcategory": "Subcategoría",
+        "description": "Descripción (opcional)",
+        "descriptionPlaceholder": "Café, súper…",
+        "date": "Fecha",
+        "hormiga": "¿Es gasto hormiga?",
+        "save": "Guardar"
+      }
+    },
+    "expensesMeta": {
+      "title": "Gastos · Finanzas",
+      "description": "Gastos recurrentes y variables del mes."
+    },
+    "incomesMeta": {
+      "title": "Ingresos · Finanzas",
+      "description": "Ingresos familiares por persona y quincena."
+    },
+    "reportsMeta": {
+      "title": "Reportes · Finanzas",
+      "description": "Análisis de ingresos, gastos y tendencias."
+    },
+    "common": {
+      "retry": "Reintentar",
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "delete": "Eliminar",
+      "all": "Todas",
+      "loading": "Cargando…",
+      "saving": "Guardando…",
+      "error": "Algo salió mal.",
+      "monthTotal": "Total del mes"
+    },
+    "fab": {
+      "openMenu": "Acciones rápidas",
+      "closeMenu": "Cerrar menú",
+      "askAi": "Preguntar a IA",
+      "antExpense": "Gasto hormiga",
+      "quickExpense": "Gasto rápido",
+      "income": "Ingreso",
+      "goal": "Meta",
+      "quickNote": "Nota rápida"
+    },
+    "expenses": {
+      "title": "Gastos",
+      "tabs": {
+        "recurring": "Recurrentes",
+        "variable": "Variables",
+        "add": "Agregar"
+      },
+      "quincena": {
+        "q1": "Quincena 1",
+        "q2": "Quincena 2",
+        "total": "Total quincena"
+      },
+      "recurring": {
+        "empty": "No hay gastos recurrentes este mes.",
+        "add": "Nuevo recurrente",
+        "columns": {
+          "name": "Nombre",
+          "subcategory": "Subcategoría",
+          "due": "Vencimiento",
+          "amount": "Monto",
+          "account": "Cuenta",
+          "status": "Status"
+        },
+        "everyPaycheck": "Cada quincena",
+        "markPaid": "Pagado",
+        "editAmount": "Monto pagado",
+        "history": "Historial",
+        "historyTitle": "Historial de pagos",
+        "historyEmpty": "Sin historial aún.",
+        "overdue": "Vencido"
+      },
+      "variable": {
+        "empty": "No hay gastos registrados este mes.",
+        "total": "Total acumulado",
+        "dateFrom": "Desde",
+        "dateTo": "Hasta",
+        "swipeHint": "Desliza para eliminar"
+      },
+      "form": {
+        "recurringTitle": "Nuevo gasto recurrente",
+        "variableTitle": "Nuevo gasto variable",
+        "kindRecurring": "Recurrente",
+        "kindVariable": "Variable",
+        "name": "Nombre del gasto",
+        "description": "Descripción",
+        "category": "Categoría",
+        "subcategory": "Subcategoría",
+        "newSubcategory": "Nueva subcategoría",
+        "newSubcategoryPlaceholder": "Nombre",
+        "amount": "Monto (MXN)",
+        "paycheck": "Quincena",
+        "dueDay": "Día de vencimiento",
+        "dueEveryPaycheck": "Cada quincena",
+        "account": "Cuenta origen",
+        "active": "Activo",
+        "notes": "Notas (opcional)",
+        "date": "Fecha",
+        "noAccounts": "Crea una cuenta en Configuración para continuar."
+      },
+      "status": {
+        "paid": "Pagado",
+        "pending": "Pendiente",
+        "overdue": "Vencido"
+      }
+    },
+    "incomes": {
+      "title": "Ingresos",
+      "summary": {
+        "title": "Resumen del mes",
+        "manuel": "Total Manuel",
+        "carolina": "Total Carolina",
+        "family": "Total familiar",
+        "usdBreakdown": "{usd} × {rate} = {mxn}",
+        "carolinaQ1": "Nómina Q1",
+        "carolinaQ2": "Nómina Q2",
+        "bonuses": "Bonos"
+      },
+      "list": {
+        "title": "Ingresos del mes",
+        "empty": "No hay ingresos registrados este mes.",
+        "salary": "Salario",
+        "bonus": "Bono",
+        "other": "Otro",
+        "paycheckQ1": "Q1",
+        "paycheckQ2": "Q2"
+      },
+      "form": {
+        "title": "Registrar ingreso",
+        "who": "¿Quién recibe?",
+        "manuel": "Manuel",
+        "carolina": "Carolina",
+        "amountUsd": "Monto (USD)",
+        "exchangeRate": "Tipo de cambio del día",
+        "amountMxnComputed": "Equivalente MXN",
+        "amountMxn": "Monto (MXN)",
+        "incomeKind": "Tipo",
+        "payrollQ1": "Nómina Q1",
+        "payrollQ2": "Nómina Q2",
+        "bonus": "Bono",
+        "date": "Fecha",
+        "notes": "Notas (opcional)",
+        "noAccounts": "Necesitas al menos una cuenta activa."
+      },
+      "history": {
+        "title": "Historial",
+        "month": "Mes",
+        "year": "Año"
+      }
+    },
+    "reports": {
+      "title": "Reportes",
+      "filters": {
+        "periodType": "Periodo",
+        "monthly": "Mensual",
+        "quarterly": "Trimestral",
+        "annual": "Anual",
+        "period": "Seleccionar periodo",
+        "month": "Mes",
+        "year": "Año",
+        "quarter": "Trimestre"
+      },
+      "executive": {
+        "title": "Resumen ejecutivo",
+        "income": "Ingresos totales",
+        "expenses": "Gastos totales",
+        "balance": "Balance neto",
+        "savingsRate": "Tasa de ahorro"
+      },
+      "byCategory": {
+        "title": "Gastos por categoría",
+        "empty": "Sin datos para este periodo.",
+        "percentIncome": "% del ingreso"
+      },
+      "trend": {
+        "title": "Evolución mensual",
+        "income": "Ingresos",
+        "expenses": "Gastos",
+        "savings": "Ahorro"
+      },
+      "quincena": {
+        "title": "Comparativo de quincenas",
+        "q1": "Q1 (1–15)",
+        "q2": "Q2 (15–30)"
+      },
+      "top": {
+        "title": "Top 10 gastos",
+        "empty": "Sin gastos en el periodo."
+      },
+      "trends": {
+        "title": "Tendencias vs periodo anterior",
+        "empty": "Sin cambios destacables.",
+        "up": "+{percent}%",
+        "down": "{percent}%"
+      }
+    },
+    "goalsMeta": {
+      "title": "Metas · Finanzas",
+      "description": "Metas de ahorro familiares con análisis de IA."
+    },
+    "notesMeta": {
+      "title": "Notas · Finanzas",
+      "description": "Notas rápidas, recordatorios y pendientes."
+    },
+    "notes": {
+      "title": "Notas",
+      "subtitle": "Notas, recordatorios y pendientes en un solo lugar.",
+      "add": "Nueva nota",
+      "createError": "No se pudo crear la nota. Inténtalo de nuevo.",
+      "empty": "Aún no tienes notas. Crea la primera.",
+      "filters": {
+        "all": "Todas",
+        "reminders": "Recordatorios",
+        "todos": "Pendientes",
+        "pinned": "Fijadas"
+      },
+      "types": {
+        "note": "📝 Nota",
+        "reminder": "🔔 Recordatorio",
+        "todo": "✅ Pendiente"
+      },
+      "badges": {
+        "overdue": "Vencido",
+        "today": "Hoy"
+      },
+      "card": {
+        "pin": "Fijar",
+        "unpin": "Desfijar",
+        "edit": "Editar",
+        "delete": "Eliminar",
+        "toggleComplete": "Marcar completado"
+      },
+      "form": {
+        "newTitle": "Nueva nota",
+        "editTitle": "Editar nota",
+        "title": "Título",
+        "titlePlaceholder": "Título...",
+        "contentLabel": "Contenido",
+        "contentNote": "Escribe tu nota...",
+        "contentReminder": "¿Qué debes recordar?",
+        "contentTodo": "¿Qué tienes pendiente?",
+        "reminderDate": "Fecha",
+        "reminderTime": "Hora",
+        "color": "Color"
+      },
+      "searchPlaceholder": "Buscar notas…",
+      "searchEmpty": "Ninguna nota coincide con tu búsqueda.",
+      "emptyPreview": "Nota vacía",
+      "quick": {
+        "titleDialog": "Nota rápida",
+        "title": "Título (opcional)",
+        "titlePlaceholder": "Título…",
+        "content": "Nota",
+        "contentPlaceholder": "Escribe una nota rápida…",
+        "savedToast": "Nota guardada",
+        "openEditor": "Abrir editor →"
+      },
+      "editor": {
+        "placeholder": "Escribe tu nota aquí…",
+        "back": "Volver a notas",
+        "titlePlaceholder": "Sin título",
+        "pin": "Fijar",
+        "unpin": "Desfijar",
+        "delete": "Eliminar",
+        "deleteConfirm": "¿Eliminar esta nota permanentemente?",
+        "saving": "Guardando…",
+        "saved": "Guardado",
+        "attachments": "Adjuntos",
+        "removeAttachment": "Quitar adjunto",
+        "paragraph": "Párrafo",
+        "heading1": "Título 1",
+        "heading2": "Título 2",
+        "heading3": "Título 3",
+        "bold": "Negrita",
+        "italic": "Cursiva",
+        "underline": "Subrayado",
+        "strike": "Tachado",
+        "alignLeft": "Alinear izquierda",
+        "alignCenter": "Centrar",
+        "alignRight": "Alinear derecha",
+        "alignJustify": "Justificar",
+        "bulletList": "Lista con viñetas",
+        "orderedList": "Lista numerada",
+        "taskList": "Lista de tareas",
+        "link": "Enlace",
+        "linkPrompt": "URL",
+        "image": "Imagen",
+        "attach": "Adjunto",
+        "sketchToggle": "Dibujo",
+        "sketchPreview": "Dibujo",
+        "editSketch": "Editar dibujo",
+        "sketch": {
+          "pen": "Pluma",
+          "marker": "Marcador",
+          "eraser": "Borrador",
+          "strokeWidth": "Grosor",
+          "undo": "Deshacer",
+          "redo": "Rehacer",
+          "clear": "Limpiar"
+        }
+      }
+    },
+    "debtsMeta": {
+      "title": "Deudas · Finanzas",
+      "description": "Gestión de deudas y plan de pagos con IA."
+    },
+    "goals": {
+      "title": "Metas financieras",
+      "subtitle": "Ahorra con objetivo y revisa tu progreso",
+      "add": "Nueva meta",
+      "empty": "Aún no tienes metas. Crea la primera.",
+      "shared": "Familiar",
+      "monthsLeft": "{count, plural, one {# mes restante} other {# meses restantes}}",
+      "monthlySave": "Ahorro mensual",
+      "targetDate": "Fecha meta",
+      "addContribution": "Agregar abono",
+      "status": {
+        "active": "En progreso",
+        "completed": "Completada",
+        "paused": "Pausada"
+      },
+      "form": {
+        "title": "Nueva meta",
+        "goalTitle": "Título de la meta",
+        "goalTitlePlaceholder": "Enganche de casa, viaje…",
+        "icon": "Ícono",
+        "color": "Color",
+        "targetAmount": "Monto objetivo (MXN)",
+        "currentAmount": "Ya ahorrado (MXN)",
+        "targetDate": "Fecha objetivo",
+        "calculated": "Calculado automáticamente",
+        "monthlyRequired": "Ahorro mensual requerido",
+        "biweeklyRequired": "Ahorro quincenal equivalente",
+        "notes": "Notas / descripción",
+        "shared": "Meta compartida (visible para la familia)"
+      },
+      "contribution": {
+        "title": "Agregar abono",
+        "amount": "Monto del abono",
+        "date": "Fecha",
+        "notes": "Notas (opcional)"
+      },
+      "ai": {
+        "analyze": "Ver análisis IA",
+        "title": "Análisis con IA",
+        "empty": "Generando recomendaciones…",
+        "error": "No se pudo obtener el análisis. Verifica ANTHROPIC_API_KEY."
+      }
+    },
+    "debts": {
+      "title": "Gestión de deudas",
+      "subtitle": "Saldo, pagos y plan familiar de payoff",
+      "add": "Nueva deuda",
+      "empty": "No hay deudas registradas.",
+      "monthlyPayment": "Pago mensual",
+      "dueDay": "Día de pago",
+      "interestRate": "Tasa anual",
+      "payoffDate": "Libre de deuda (est.)",
+      "registerPayment": "Registrar pago",
+      "status": {
+        "active": "Activa",
+        "paid_off": "Liquidada"
+      },
+      "summary": {
+        "totalDebt": "Deuda total",
+        "monthlyPayments": "Pagos mensuales",
+        "incomePercent": "% del ingreso a deudas"
+      },
+      "form": {
+        "title": "Nueva deuda",
+        "name": "Nombre",
+        "totalAmount": "Monto original",
+        "currentBalance": "Saldo actual",
+        "monthlyPayment": "Pago mensual",
+        "interestRate": "Tasa anual (%)",
+        "dueDay": "Día de pago del mes",
+        "notes": "Notas"
+      },
+      "payment": {
+        "title": "Registrar pago",
+        "amount": "Monto pagado",
+        "date": "Fecha de pago",
+        "isExtra": "¿Es pago extra?",
+        "notes": "Notas"
+      },
+      "ai": {
+        "plan": "Plan IA",
+        "title": "Plan de pagos con IA",
+        "regenerate": "Regenerar plan",
+        "activate": "Activar plan",
+        "deactivate": "Desactivar seguimiento",
+        "timeline": "Línea de tiempo de payoff",
+        "withoutPlan": "Sin plan",
+        "withPlan": "Con plan IA",
+        "months": "Meses hasta libre de deuda",
+        "interestSaved": "Intereses ahorrados (est.)",
+        "empty": "Pulsa «Plan IA» para generar tu estrategia.",
+        "error": "No se pudo generar el plan. Verifica ANTHROPIC_API_KEY.",
+        "strategy": {
+          "avalanche": "Avalancha (mayor tasa primero)",
+          "snowball": "Bola de nieve (menor saldo primero)"
+        }
+      }
+    },
+    "settings": {
+      "metaTitle": "Configuración · Finanzas",
+      "metaDescription": "Perfil, preferencias, seguridad, cuentas y categorías.",
+      "title": "Configuración",
+      "subtitle": "Administra tu perfil, preferencias y cuentas bancarias.",
+      "saved": "Cambios guardados.",
+      "loadError": "No se pudo cargar la configuración.",
+      "profile": {
+        "title": "Perfil",
+        "description": "Tu información personal en la app.",
+        "fullName": "Nombre completo",
+        "email": "Correo electrónico",
+        "save": "Guardar perfil",
+        "avatarHint": "Toca la foto para cambiarla (JPG, PNG o WebP, máx. 2 MB)"
+      },
+      "preferences": {
+        "title": "Preferencias",
+        "description": "Idioma, tema y moneda de visualización.",
+        "language": "Idioma",
+        "theme": "Tema",
+        "themeLight": "Claro",
+        "themeDark": "Oscuro",
+        "themeSystem": "Sistema",
+        "accent": "Color de acento",
+        "accentEmerald": "Esmeralda",
+        "accentBlue": "Azul",
+        "accentPurple": "Morado",
+        "accentRose": "Rosa",
+        "accentAmber": "Ámbar",
+        "accentSlate": "Pizarra",
+        "currency": "Moneda",
+        "currencyHint": "Todos los montos se muestran en pesos mexicanos (MXN)."
+      },
+      "security": {
+        "title": "Seguridad",
+        "description": "Contraseña y autenticación en dos pasos.",
+        "passwordTitle": "Cambiar contraseña",
+        "currentPassword": "Contraseña actual",
+        "newPassword": "Nueva contraseña",
+        "confirmPassword": "Confirmar contraseña",
+        "changePassword": "Actualizar contraseña",
+        "mfaTitle": "Autenticación en dos pasos (MFA)",
+        "enableMfa": "Activar MFA",
+        "disableMfa": "Desactivar",
+        "mfaActive": "Activo ✓"
+      },
+      "accounts": {
+        "title": "Cuentas bancarias",
+        "description": "Cuentas que usas para ingresos y gastos.",
+        "name": "Nombre de la cuenta",
+        "type": "Tipo",
+        "color": "Color",
+        "add": "Agregar cuenta",
+        "save": "Guardar",
+        "cancel": "Cancelar",
+        "deleteConfirm": "¿Eliminar esta cuenta?",
+        "cannotDelete": "No se puede eliminar: tiene transacciones asociadas.",
+        "txCount": "{count, plural, one {# transacción} other {# transacciones}}",
+        "types": {
+          "savings": "Ahorro",
+          "checking": "Débito / cheques",
+          "cash": "Efectivo"
+        }
+      },
+      "categories": {
+        "title": "Categorías y subcategorías",
+        "description": "Categorías del sistema y subcategorías personalizadas.",
+        "systemTitle": "Categorías del sistema (solo lectura)",
+        "systemBadge": "Sistema",
+        "customTitle": "Subcategorías personalizadas",
+        "pickCategory": "Categoría padre",
+        "subName": "Nombre de subcategoría",
+        "subDescription": "Descripción (opcional)",
+        "addSub": "Agregar subcategoría",
+        "active": "Activa",
+        "inactive": "Inactiva"
+      },
+      "errors": {
+        "generic": "Algo salió mal. Inténtalo de nuevo.",
+        "unauthorized": "Sesión no válida.",
+        "invalid_name": "El nombre no puede estar vacío.",
+        "password_too_short": "La contraseña debe tener al menos 8 caracteres.",
+        "password_mismatch": "Las contraseñas no coinciden.",
+        "current_password_invalid": "La contraseña actual no es correcta.",
+        "account_has_transactions": "Esta cuenta tiene transacciones y no puede eliminarse.",
+        "invalid_avatar": "La imagen debe ser JPG, PNG o WebP y pesar menos de 2 MB."
+      }
+    },
+    "ai": {
+      "metaTitle": "IA Financiera · Finanzas",
+      "metaDescription": "Historial de conversaciones con tu asesor financiero personal.",
+      "pageTitle": "IA Financiera",
+      "pageSubtitle": "Todas tus conversaciones con el asesor. Pregunta sobre gastos, metas, deudas y decisiones grandes.",
+      "title": "Asesor Financiero",
+      "newChat": "Nueva conversación",
+      "close": "Cerrar",
+      "minimize": "Minimizar",
+      "send": "Enviar",
+      "inputPlaceholder": "Pregunta algo sobre tus finanzas…",
+      "emptyHint": "Tengo acceso a tus finanzas familiares. ¿En qué te ayudo?",
+      "errors": {
+        "connection": "No pude conectarme al asesor. Intenta de nuevo en un momento.",
+        "rateLimit": "Has alcanzado el límite de 20 mensajes por hora. Intenta más tarde."
+      },
+      "suggestions": {
+        "spentThisMonth": "¿Cuánto gasté este mes?",
+        "newCar": "¿Puedo comprar un coche nuevo?",
+        "accelerateDebts": "¿Cómo acelero el pago de mis deudas?",
+        "savingsVsLastMonth": "¿Cómo va mi ahorro vs el mes pasado?",
+        "tripViable": "¿Es viable un viaje este año?"
+      },
+      "history": {
+        "current": "Conversación actual",
+        "newChat": "Nueva conversación",
+        "loading": "Cargando…",
+        "empty": "Sin conversaciones aún",
+        "noResults": "Sin resultados",
+        "untitled": "Sin título",
+        "searchPlaceholder": "Buscar en el historial…",
+        "delete": "Eliminar",
+        "deleteConfirm": "¿Eliminar esta conversación?"
+      }
+    },
+    "placeholders": {
+      "expensesTitle": "Gastos",
+      "incomesTitle": "Ingresos",
+      "goalsTitle": "Metas",
+      "debtsTitle": "Deudas",
+      "reportsTitle": "Reportes",
+      "moreTitle": "Más",
+      "moreIntro": "Herramientas y ajustes adicionales.",
+      "linkDebts": "Deudas",
+      "linkReports": "Reportes",
+      "linkAi": "IA Financiera",
+      "linkNotes": "Notas",
+      "linkSettings": "Seguridad y configuración",
+      "comingSoon": "Esta sección llegará pronto."
+    }
+  }
+}
