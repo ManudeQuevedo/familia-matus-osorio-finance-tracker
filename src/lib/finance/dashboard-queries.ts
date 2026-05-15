@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { householdCreatorInitial } from "@/lib/finance/household";
-import { getFamilyIdForUser } from "@/lib/supabase/family";
+import { getFamilyIdForUser } from "@/lib/supabase/family-core";
 
 export type AppLocale = "en" | "es";
 

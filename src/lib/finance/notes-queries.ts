@@ -2,7 +2,7 @@ import type { JSONContent } from "@tiptap/react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { NoteAttachmentMeta } from "@/lib/finance/note-storage";
-import { getFamilyIdForUser } from "@/lib/supabase/family";
+import { getFamilyIdForUser } from "@/lib/supabase/family-core";
 
 export type NoteType = "note" | "reminder" | "todo";
 

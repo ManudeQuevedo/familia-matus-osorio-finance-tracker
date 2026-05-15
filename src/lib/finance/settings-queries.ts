@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { getFamilyIdForUser } from "@/lib/supabase/family";
+import { getFamilyIdForUser } from "@/lib/supabase/family-core";
 
 export type ProfileSettings = {
   id: string;

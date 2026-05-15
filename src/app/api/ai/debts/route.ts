@@ -9,7 +9,7 @@ import {
   formatContextForPrompt,
 } from "@/lib/finance/household-context";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { getFamilyIdForUser } from "@/lib/supabase/family";
+import { getFamilyIdForUser } from "@/lib/supabase/family-core";
 
 export async function POST(request: Request) {
   const supabase = await createSupabaseServerClient();

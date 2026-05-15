@@ -8,7 +8,7 @@ import type {
 } from "@/lib/finance/dashboard-queries";
 import { num } from "@/lib/finance/format";
 import { householdCreatorInitial, personFromEmail } from "@/lib/finance/household";
-import { getFamilyIdForUser } from "@/lib/supabase/family";
+import { getFamilyIdForUser } from "@/lib/supabase/family-core";
 
 export type AccountOption = {
   id: string;

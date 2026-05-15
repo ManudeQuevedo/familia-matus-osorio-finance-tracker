@@ -8,7 +8,7 @@ import {
 } from "@/lib/finance/debt-calculations";
 import { computeGoalMetrics } from "@/lib/finance/goal-calculations";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { getFamilyIdForUser } from "@/lib/supabase/family";
+import { getFamilyIdForUser } from "@/lib/supabase/family-core";
 
 function todayIsoDate(): string {
   return new Date().toISOString().slice(0, 10);

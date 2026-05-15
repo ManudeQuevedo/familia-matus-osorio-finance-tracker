@@ -4,7 +4,7 @@ import type { AppLocale } from "@/lib/finance/dashboard-queries";
 import { computeGoalMetrics } from "@/lib/finance/goal-calculations";
 import { num } from "@/lib/finance/format";
 import { householdCreatorInitial } from "@/lib/finance/household";
-import { getFamilyIdForUser } from "@/lib/supabase/family";
+import { getFamilyIdForUser } from "@/lib/supabase/family-core";
 
 export type GoalStatus = "active" | "completed" | "paused";
 

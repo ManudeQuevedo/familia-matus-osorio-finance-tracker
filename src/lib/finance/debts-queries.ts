@@ -8,7 +8,7 @@ import {
 } from "@/lib/finance/debt-calculations";
 import { num } from "@/lib/finance/format";
 import { householdCreatorInitial } from "@/lib/finance/household";
-import { getFamilyIdForUser } from "@/lib/supabase/family";
+import { getFamilyIdForUser } from "@/lib/supabase/family-core";
 
 export type DebtStatus = "active" | "paid_off";
 

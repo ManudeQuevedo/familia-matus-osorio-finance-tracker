@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { isAccentColor, type AccentColor } from "@/lib/finance/accent";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { getFamilyIdForUser } from "@/lib/supabase/family";
+import { getFamilyIdForUser } from "@/lib/supabase/family-core";
 
 const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
 const AVATAR_MIME = new Set(["image/jpeg", "image/png", "image/webp"]);

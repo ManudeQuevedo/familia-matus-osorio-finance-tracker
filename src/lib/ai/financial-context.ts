@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { HOUSEHOLD_EMAILS } from "@/lib/finance/household";
 import { num } from "@/lib/finance/format";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { getFamilyIdForUser } from "@/lib/supabase/family";
+import { getFamilyIdForUser } from "@/lib/supabase/family-core";
 
 export type AiPageContext = {
   currentPage?: string;

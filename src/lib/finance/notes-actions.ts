@@ -13,7 +13,7 @@ import { NOTE_COLOR_OPTIONS } from "@/lib/finance/note-colors";
 import type { NoteSketchData, NoteType } from "@/lib/finance/notes-queries";
 import type { NoteAttachmentMeta } from "@/lib/finance/note-storage";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { getFamilyIdForUser } from "@/lib/supabase/family";
+import { getFamilyIdForUser } from "@/lib/supabase/family-core";
 
 const NOTE_SELECT =
   "id, user_id, title, content, type, is_pinned, is_completed, reminder_date, color, content_json, attachments, sketch_data, created_at, updated_at";

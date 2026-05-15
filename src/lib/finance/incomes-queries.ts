@@ -8,7 +8,7 @@ import {
   personFromEmail,
   type HouseholdPerson,
 } from "@/lib/finance/household";
-import { getFamilyIdForUser } from "@/lib/supabase/family";
+import { getFamilyIdForUser } from "@/lib/supabase/family-core";
 
 export type AccountOption = {
   id: string;
