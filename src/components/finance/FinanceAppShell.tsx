@@ -14,17 +14,20 @@ import {
   Target,
   TrendingUp,
 } from "lucide-react";
-import { motion, useReducedMotion } from "framer-motion";
+import { useReducedMotion } from "framer-motion";
 import { useLocale, useTranslations } from "next-intl";
-import { useCallback, useEffect, useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useState,
+  useTransition,
+  type CSSProperties,
+} from "react";
 
 import { AppQuickActions } from "@/components/finance/AppQuickActions";
 import { SidebarBrand } from "@/components/finance/SidebarBrand";
 import { ThemeCycleToggle } from "@/components/shared/theme-toggle";
-import { UserAvatar } from "@/components/finance/UserAvatar";
-import { useUserPreferences } from "@/components/providers/UserPreferencesProvider";
 import { Link, usePathname } from "@/i18n/navigation";
-import { getDisplayName } from "@/lib/finance/display-name";
 import {
   getUserPref,
   setUserPref,
@@ -120,23 +123,32 @@ function SidebarNavLink({
       prefetch
       onClick={() => onNavigate?.(item.key)}
       className={cn(
-        "nav-item flex items-center py-2.5 text-sm font-medium",
+        "nav-item flex min-w-0 items-center py-2.5 text-sm font-medium transition-[gap,padding] duration-300 ease-in-out",
         collapsed ? "justify-center px-2" : "gap-3 px-3",
         active && "nav-item-active",
         active && collapsed && "nav-item-collapsed",
         className,
       )}>
       <NavIcon name={item.key} />
-      {!collapsed ? <span>{item.label}</span> : null}
+      <span
+        className={cn(
+          "min-w-0 overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-300 ease-in-out",
+          collapsed ? "max-w-0 opacity-0" : "max-w-48 opacity-100",
+        )}
+        aria-hidden={collapsed}>
+        {item.label}
+      </span>
     </Link>
   );
 
-  if (!collapsed) return link;
-
   return (
-    <Tooltip>
+    <Tooltip
+      delayDuration={0}
+      {...(!collapsed ? { open: false as boolean } : {})}>
       <TooltipTrigger asChild>{link}</TooltipTrigger>
-      <TooltipContent side="right">{item.label}</TooltipContent>
+      {collapsed ? (
+        <TooltipContent side="right">{item.label}</TooltipContent>
+      ) : null}
     </Tooltip>
   );
 }
@@ -155,29 +167,25 @@ function SidebarCollapseTab({
   const label = collapsed ? expandLabel : collapseLabel;
 
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <button
-          type="button"
-          onClick={onToggle}
-          aria-label={label}
-          className={cn(
-            "absolute top-1/2 right-[-20px] z-50 flex h-12 w-5 -translate-y-1/2 cursor-pointer items-center justify-center",
-            "rounded-r-lg border border-l-0 border-border-default bg-bg-sidebar",
-            "text-text-muted shadow-sm",
-            "transition-[background-color,color,box-shadow,transform] duration-300 ease-in-out",
-            "hover:bg-bg-card-hover hover:text-accent",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-          )}>
-          {collapsed ? (
-            <ChevronRight className="h-3.5 w-3.5 shrink-0" aria-hidden />
-          ) : (
-            <ChevronLeft className="h-3.5 w-3.5 shrink-0" aria-hidden />
-          )}
-        </button>
-      </TooltipTrigger>
-      <TooltipContent side="right">{label}</TooltipContent>
-    </Tooltip>
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-label={label}
+      title={label}
+      className={cn(
+        "absolute top-1/2 right-[-20px] z-50 flex h-12 w-5 -translate-y-1/2 cursor-pointer items-center justify-center",
+        "rounded-r-lg border border-l-0 border-border-default bg-bg-sidebar",
+        "text-text-muted shadow-sm",
+        "transition-[background-color,color,box-shadow,transform] duration-300 ease-in-out",
+        "hover:bg-bg-card-hover hover:text-accent",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+      )}>
+      {collapsed ? (
+        <ChevronRight className="h-3.5 w-3.5 shrink-0" aria-hidden />
+      ) : (
+        <ChevronLeft className="h-3.5 w-3.5 shrink-0" aria-hidden />
+      )}
+    </button>
   );
 }
 
@@ -191,7 +199,6 @@ export function FinanceAppShell({
   const pathname = usePathname() ?? "/";
   const locale = useLocale();
   const t = useTranslations("Finance.nav");
-  const { avatarUrl } = useUserPreferences();
 
   const [collapsed, setCollapsed] = useState(false);
   const [hydrated, setHydrated] = useState(false);
@@ -244,21 +251,6 @@ export function FinanceAppShell({
     setOptimisticKey(key);
   }, []);
 
-  const displayName = getDisplayName(
-    user.fullName,
-    user.email,
-    t("you") as string,
-  );
-
-  const initials = (() => {
-    const src = user.fullName?.trim() || user.email || displayName;
-    const parts = src.split(/\s+/).filter(Boolean);
-    if (parts.length >= 2) {
-      return (parts[0]![0]! + parts[1]![0]!).toUpperCase();
-    }
-    return src.slice(0, 2).toUpperCase();
-  })();
-
   const navItems: { key: NavKey; label: string; mobileTab?: boolean }[] = [
     { key: "dashboard", label: t("dashboard"), mobileTab: true },
     { key: "expenses", label: t("expenses"), mobileTab: true },
@@ -278,26 +270,28 @@ export function FinanceAppShell({
 
   const sidebarCollapsed = hydrated && collapsed;
 
-  const sidebarTransition = reduceMotion
-    ? { duration: 0 }
-    : { duration: 0.3, ease: "easeInOut" as const };
+  const prefersReducedMotion = reduceMotion === true;
+  const sidebarEase = "cubic-bezier(0.4, 0, 0.2, 1)";
+  const sidebarWidth = sidebarCollapsed ? "4rem" : "15rem";
+  const sidebarAsideStyle: CSSProperties = {
+    width: sidebarWidth,
+    minWidth: 0,
+    flex: "0 0 auto",
+    transition: prefersReducedMotion ? undefined : `width 300ms ${sidebarEase}`,
+  };
 
   return (
     <TooltipProvider delayDuration={0}>
       <div className="flex min-h-dvh overflow-x-visible bg-bg-app text-text-primary">
-        <motion.aside
+        <aside
           className={cn(
-            "sticky top-0 z-30 hidden h-dvh shrink-0 overflow-visible border-r border-border-default bg-bg-sidebar shadow-sm",
-            "relative md:flex",
+            "sticky top-0 z-30 hidden h-dvh overflow-visible border-r border-border-default bg-bg-sidebar shadow-sm",
+            "relative min-w-0 md:flex",
           )}
-          initial={false}
-          animate={{
-            width: sidebarCollapsed ? "4rem" : "15rem",
-          }}
-          transition={sidebarTransition}>
+          style={sidebarAsideStyle}>
           <div
             className={cn(
-              "flex h-full min-h-0 flex-col overflow-hidden md:py-4",
+              "flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden md:py-4",
               "transition-[padding] duration-300 ease-in-out",
               sidebarCollapsed ? "md:px-2" : "md:px-4",
             )}>
@@ -318,45 +312,15 @@ export function FinanceAppShell({
             <div className="mt-4 hidden shrink-0 flex-col border-t border-border-subtle pt-4 md:flex">
               <div
                 className={cn(
-                  "mb-2 flex",
-                  sidebarCollapsed ? "justify-center" : "items-center",
+                  sidebarCollapsed
+                    ? "flex justify-center"
+                    : "flex items-center",
                 )}>
-                <ThemeCycleToggle collapsed={sidebarCollapsed} />
+                <ThemeCycleToggle
+                  collapsed={sidebarCollapsed}
+                  appearance="sidebar"
+                />
               </div>
-              {sidebarCollapsed ? (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="flex justify-center py-2">
-                      <UserAvatar
-                        avatarUrl={avatarUrl}
-                        initials={initials}
-                        size="sm"
-                      />
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="right">
-                    <p className="font-medium">{displayName}</p>
-                  </TooltipContent>
-                </Tooltip>
-              ) : (
-                <div className="flex items-center gap-3 rounded-lg px-1 py-2">
-                  <UserAvatar
-                    avatarUrl={avatarUrl}
-                    initials={initials}
-                    size="sm"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">
-                      {displayName}
-                    </p>
-                    {user.email ? (
-                      <p className="truncate text-xs text-text-muted">
-                        {user.email}
-                      </p>
-                    ) : null}
-                  </div>
-                </div>
-              )}
             </div>
           </div>
           <SidebarCollapseTab
@@ -365,7 +329,7 @@ export function FinanceAppShell({
             expandLabel={t("sidebarExpand")}
             collapseLabel={t("sidebarCollapse")}
           />
-        </motion.aside>
+        </aside>
 
         <div
           className={cn(

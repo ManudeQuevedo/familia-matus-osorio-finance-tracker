@@ -7,12 +7,17 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "patch-package"
+    "postinstall": "patch-package",
+    "vercel:link": "vercel link",
+    "vercel:pull-env": "vercel env pull .env.local",
+    "vercel:deploy": "vercel",
+    "vercel:deploy:prod": "vercel --prod"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.96.0",
     "@gsap/react": "^2.1.2",
     "@radix-ui/react-dialog": "^1.1.15",
+    "@radix-ui/react-dropdown-menu": "^2.1.16",
     "@radix-ui/react-scroll-area": "^1.2.10",
     "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-slot": "^1.2.4",
@@ -61,6 +66,7 @@
     "eslint-config-next": "16.2.6",
     "patch-package": "^8.0.1",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vercel": "^54.1.0"
   }
 }

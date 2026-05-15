@@ -90,7 +90,13 @@
       "cancel": "Cancelar",
       "you": "Tú",
       "sidebarCollapse": "Colapsar",
-      "sidebarExpand": "Expandir"
+      "sidebarExpand": "Expandir",
+      "userMenu": {
+        "openMenu": "Menú de cuenta",
+        "myProfile": "👤 Mi perfil",
+        "security": "🔒 Seguridad",
+        "signOut": "🚪 Cerrar sesión"
+      }
     },
     "dashboardMeta": {
       "title": "Panel · Finanzas",

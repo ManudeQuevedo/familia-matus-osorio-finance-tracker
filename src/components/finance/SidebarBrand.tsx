@@ -60,7 +60,7 @@ export function SidebarBrand({
   return (
     <div
       className={cn(
-        "relative mb-6 flex items-center",
+        "relative mb-6 flex min-w-0 items-center",
         collapsed ? "justify-center px-0" : "gap-2 px-1",
       )}>
       <button
@@ -71,11 +71,14 @@ export function SidebarBrand({
         aria-expanded={open}>
         <BrandIcon className="h-5 w-5" />
       </button>
-      {!collapsed ? (
-        <span className="min-w-0 text-sm font-semibold leading-tight tracking-tight">
-          {FAMILY_NAME}
-        </span>
-      ) : null}
+      <span
+        className={cn(
+          "min-w-0 overflow-hidden text-sm font-semibold leading-tight tracking-tight transition-[max-width,opacity] duration-300 ease-in-out",
+          collapsed ? "max-w-0 opacity-0" : "max-w-56 opacity-100",
+        )}
+        aria-hidden={collapsed}>
+        {FAMILY_NAME}
+      </span>
       {open ? (
         <div
           ref={popoverRef}

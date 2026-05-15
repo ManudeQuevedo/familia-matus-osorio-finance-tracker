@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { Monitor, Moon, Sun, type LucideIcon } from "lucide-react";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import {
   createContext,
   useCallback,
@@ -18,6 +18,11 @@ import {
   type ThemePreference,
 } from "@/components/providers/ThemeProvider";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 const RIPPLE_DURATION = 0.5;
@@ -119,23 +124,26 @@ export function ThemeCycleToggle({
   className,
   collapsed,
   serverTheme = "system",
+  appearance = "toolbar",
 }: {
   className?: string;
   collapsed?: boolean;
   serverTheme?: ThemePreference;
+  appearance?: "toolbar" | "sidebar";
 }) {
   const locale = useLocale();
+  const tPrefs = useTranslations("Finance.settings.preferences");
   const { displayTheme, setTheme } = useThemePreference(serverTheme);
   const { playRipple } = useThemeRipple();
 
-  const Icon =
+  const Icon: LucideIcon =
     displayTheme === "light" ? Sun : displayTheme === "dark" ? Moon : Monitor;
   const label =
     displayTheme === "light"
-      ? "Light"
+      ? tPrefs("themeLight")
       : displayTheme === "dark"
-        ? "Dark"
-        : "System";
+        ? tPrefs("themeDark")
+        : tPrefs("themeSystem");
 
   const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
     const current = displayTheme ?? "system";
@@ -145,20 +153,60 @@ export function ThemeCycleToggle({
     });
   };
 
+  const isCollapsedSidebar = !!collapsed && appearance === "sidebar";
+
+  if (appearance === "sidebar") {
+    const sidebarButton = (
+      <button
+        type="button"
+        className={cn(
+          "nav-item flex min-w-0 items-center rounded-lg py-2.5 text-sm font-medium transition-[gap,padding] duration-300 ease-in-out",
+          "text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+          collapsed ? "w-full justify-center px-2" : "gap-3 px-3",
+          className,
+        )}
+        onClick={handleClick}
+        aria-label={`${tPrefs("theme")}: ${label}`}
+        suppressHydrationWarning>
+        <Icon className="h-5 w-5 shrink-0" strokeWidth={2} aria-hidden />
+        <span
+          className={cn(
+            "min-w-0 overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-300 ease-in-out",
+            collapsed ? "max-w-0 opacity-0" : "max-w-48 opacity-100",
+          )}
+          aria-hidden={collapsed}
+          suppressHydrationWarning>
+          {label}
+        </span>
+      </button>
+    );
+
+    return (
+      <Tooltip
+        delayDuration={250}
+        {...(!isCollapsedSidebar ? { open: false as boolean } : {})}>
+        <TooltipTrigger asChild>{sidebarButton}</TooltipTrigger>
+        {isCollapsedSidebar ? (
+          <TooltipContent side="right">{label}</TooltipContent>
+        ) : null}
+      </Tooltip>
+    );
+  }
+
   return (
     <Button
       type="button"
       variant="ghost"
       size={collapsed ? "icon" : "sm"}
       className={cn(
-        "text-text-muted hover:text-text-primary hover:text-text-primary",
+        "text-text-muted hover:text-text-primary",
         !collapsed && "w-full justify-start gap-2",
         className,
       )}
       onClick={handleClick}
-      aria-label={`Theme: ${label}. Click to change.`}
+      aria-label={`${tPrefs("theme")}: ${label}`}
       suppressHydrationWarning>
-      <Icon className="h-4 w-4 shrink-0" />
+      <Icon className="h-4 w-4 shrink-0" aria-hidden />
       {!collapsed ? (
         <span className="text-sm" suppressHydrationWarning>
           {label}
@@ -201,7 +249,7 @@ export function ThemePreferenceOption({
         "flex flex-col items-center gap-2 rounded-xl border px-4 py-4 text-sm font-medium transition",
         active
           ? "border-accent bg-accent-muted text-accent ring-2 ring-accent/30"
-          : "border-border-default bg-bg-card text-text-secondary hover:border-border-strong dark:border-border-default bg-bg-card dark:text-text-muted",
+          : "border-border-default bg-bg-card text-text-secondary hover:border-border-strong dark:border-border-default dark:text-text-muted",
       )}>
       <Icon className="h-6 w-6" />
       {label}

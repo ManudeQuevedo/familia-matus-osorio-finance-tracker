@@ -18,8 +18,8 @@ import type { TodayReminder } from "@/lib/finance/notes-queries";
 import { uiQuincenaToDbPeriod } from "@/lib/finance/dashboard-queries";
 import { getDisplayName } from "@/lib/finance/display-name";
 import { cn } from "@/lib/utils";
+import { FinanceHeaderUserMenu } from "@/components/finance/FinanceHeaderUserMenu";
 import { FinancePageShell } from "@/components/finance/FinancePageShell";
-import { UserAvatar } from "@/components/finance/UserAvatar";
 import { useUserPreferences } from "@/components/providers/UserPreferencesProvider";
 
 function formatMxn(locale: string, value: number) {
@@ -364,9 +364,10 @@ export function DashboardHome({
               </>
             ) : null}
           </div>
-          <UserAvatar
-            avatarUrl={avatarUrl ?? snapshot.profile.avatar_url}
-            initials={displayName.slice(0, 2).toUpperCase()}
+          <FinanceHeaderUserMenu
+            email={userEmail ?? null}
+            fullName={snapshot.profile.full_name}
+            avatarUrl={avatarUrl ?? snapshot.profile.avatar_url ?? null}
           />
         </div>
       </header>
