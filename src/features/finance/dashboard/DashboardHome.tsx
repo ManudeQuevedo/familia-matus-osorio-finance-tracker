@@ -21,6 +21,7 @@ import { getDisplayName } from "@/lib/finance/display-name";
 import { cn } from "@/lib/utils";
 import { FinanceContentHeaderActions } from "@/components/finance/FinanceContentHeaderActions";
 import { CreatorBadge } from "@/components/finance/CreatorBadge";
+import { FinanceHeaderSearchTrigger } from "@/components/finance/finance-header-search-trigger";
 import { FinancePageShell } from "@/components/finance/FinancePageShell";
 
 function formatMxn(locale: string, value: number) {
@@ -170,7 +171,9 @@ export function DashboardHome({
   const [payingId, setPayingId] = useState<string | null>(null);
 
   const totalExpenses = snapshot
-    ? snapshot.monthlyVariableExpense + snapshot.monthlyRecurringExpense
+    ? snapshot.monthlyRecurringExpense +
+      snapshot.monthlyPlannedExpense +
+      snapshot.monthlyVariableExpense
     : 0;
   const balance = snapshot ? snapshot.monthlyIncome - totalExpenses : 0;
   const savingsRate =
@@ -183,9 +186,19 @@ export function DashboardHome({
   const filteredPaycheck = useMemo(() => {
     if (!snapshot) return [];
     return snapshot.paycheckRecords.filter(
-      (r) => r.paycheck_period === dbPeriod,
+      (r) =>
+        r.paycheck_period === dbPeriod && r.expense_type === "recurring",
     );
   }, [snapshot, dbPeriod]);
+
+  const expenseTypeChartData = useMemo(() => {
+    if (!snapshot?.expenseTypeSlices.length) return [];
+    return snapshot.expenseTypeSlices.map((s) => ({
+      name: t(`expenseTypes.${s.key}` as const),
+      value: s.amount,
+      color: s.color,
+    }));
+  }, [snapshot, t]);
 
   const paycheckTotal = filteredPaycheck.reduce((s, r) => s + r.amount, 0);
 
@@ -284,7 +297,7 @@ export function DashboardHome({
 
   return (
     <FinancePageShell className="relative">
-      <header className="mb-8 flex flex-wrap items-start justify-between gap-4">
+      <header className="relative mb-8 flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-sm text-text-muted">
             {formatLongDate(intlLocale, new Date())}
@@ -298,6 +311,7 @@ export function DashboardHome({
             {formatMonthYear(intlLocale, year, month)}
           </p>
         </div>
+        <FinanceHeaderSearchTrigger />
         <div className="flex items-center gap-2">
           <div className="relative">
             <Button
@@ -515,6 +529,36 @@ export function DashboardHome({
         </motion.div>
       </section>
 
+      {snapshot.plannedUpcoming.length > 0 ? (
+        <section className="mt-8">
+          <h2 className="mb-4 text-lg font-semibold">
+            {t("plannedUpcoming.title")}
+          </h2>
+          <Card>
+            <CardContent className="space-y-3 p-4 sm:p-6">
+              {snapshot.plannedUpcoming.map((row) => (
+                <div
+                  key={row.id}
+                  className="flex flex-col gap-2 rounded-lg border border-border-subtle bg-bg-card-nested/50 p-3 dark:border-border-default sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <CreatorBadge letter={row.creatorInitial} />
+                      <p className="font-medium">{row.name}</p>
+                    </div>
+                    <p className="text-xs text-text-muted">
+                      {row.subcategoryName} · {row.due_date}
+                    </p>
+                  </div>
+                  <p className="text-lg font-semibold tabular-nums">
+                    {formatMxn(intlLocale, row.amount)}
+                  </p>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </section>
+      ) : null}
+
       <section className="mt-10 grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
@@ -551,6 +595,50 @@ export function DashboardHome({
                 </ul>
               </>
             )}
+            {expenseTypeChartData.length > 0 ? (
+              <>
+                <div className="my-6 border-t border-border-default pt-6 dark:border-border-default" />
+                <p className="mb-3 text-sm font-semibold">
+                  {t("categories.byTypeTitle")}
+                </p>
+                <DashboardCategoryChart
+                  data={expenseTypeChartData}
+                  locale={intlLocale}
+                  formatValue={(n) => formatMxn(intlLocale, n)}
+                />
+                <ul className="mt-4 space-y-2">
+                  {(() => {
+                    const expenseTypeTotal = snapshot.expenseTypeSlices.reduce(
+                      (acc, x) => acc + x.amount,
+                      0,
+                    );
+                    return snapshot.expenseTypeSlices.map((s) => {
+                      const pct =
+                        expenseTypeTotal > 0
+                          ? (s.amount / expenseTypeTotal) * 100
+                          : 0;
+                      return (
+                        <li
+                          key={s.key}
+                          className="flex items-center justify-between text-sm">
+                          <span className="flex items-center gap-2">
+                            <span
+                              className="h-2.5 w-2.5 rounded-full"
+                              style={{ backgroundColor: s.color }}
+                            />
+                            {t(`expenseTypes.${s.key}` as const)}
+                          </span>
+                          <span className="tabular-nums text-text-secondary">
+                            {formatMxn(intlLocale, s.amount)} ·{" "}
+                            {pct.toFixed(0)}%
+                          </span>
+                        </li>
+                      );
+                    });
+                  })()}
+                </ul>
+              </>
+            ) : null}
           </CardContent>
         </Card>
 

@@ -33,10 +33,8 @@ export function toastConfirmDestructive(opts: {
   onConfirm: () => void | Promise<void>;
 }) {
   toast.warning(opts.title, {
-    description:
-      opts.description ??
-      "Esta acción no se puede deshacer. ¿Seguro que deseas continuar?",
-    duration: opts.duration ?? 8000,
+    description: opts.description ?? "Esta acción no se puede deshacer.",
+    duration: opts.duration ?? 5000,
     action: {
       label: opts.confirmLabel ?? "Eliminar",
       onClick: () => {
@@ -231,7 +229,14 @@ export const notify = {
         description: "Verifica los datos e intenta de nuevo.",
       }),
     updateSuccess: () => toast.success("Ingreso actualizado"),
-    deleteSuccess: () => toast.success("Ingreso eliminado"),
+    deleteSuccess: (name: string) =>
+      toast.success("Ingreso eliminado", {
+        description: `"${name}" fue quitado.`,
+      }),
+    deleteError: () =>
+      toast.error("No se pudo eliminar el ingreso", {
+        description: "Intenta de nuevo en un momento.",
+      }),
     missingAccount: () =>
       toast.warning("Primero agrega una cuenta bancaria", {
         description: "Ve a Configuración → Datos para agregar una cuenta.",
@@ -271,6 +276,18 @@ export const notify = {
       toast.success("Meta eliminada", {
         description: `"${name}" fue removida.`,
       }),
+    deleteError: () =>
+      toast.error("No se pudo eliminar la meta", {
+        description: "Intenta de nuevo en un momento.",
+      }),
+    contributionDeleteSuccess: (goalTitle: string) =>
+      toast.success("Abono eliminado", {
+        description: `Quitado de "${goalTitle}".`,
+      }),
+    contributionDeleteError: () =>
+      toast.error("No se pudo eliminar el abono", {
+        description: "Intenta de nuevo en un momento.",
+      }),
   },
 
   debts: {
@@ -295,6 +312,22 @@ export const notify = {
         description: `"${name}" está completamente pagada.`,
         duration: 6000,
       }),
+    deleteSuccess: (name: string) =>
+      toast.success("Deuda eliminada", {
+        description: `"${name}" fue quitada del seguimiento.`,
+      }),
+    deleteError: () =>
+      toast.error("No se pudo eliminar la deuda", {
+        description: "Intenta de nuevo en un momento.",
+      }),
+    paymentDeleteSuccess: (debtName: string) =>
+      toast.success("Pago eliminado", {
+        description: `Registro quitado de "${debtName}".`,
+      }),
+    paymentDeleteError: () =>
+      toast.error("No se pudo eliminar el pago", {
+        description: "Intenta de nuevo en un momento.",
+      }),
   },
 
   accounts: {
@@ -315,6 +348,22 @@ export const notify = {
       toast.success("Cuenta eliminada", {
         description: `"${name}" fue quitada.`,
       }),
+    deactivatedSuccess: (name: string) =>
+      toast.success("Cuenta desactivada", {
+        description: `"${name}" ya no se muestra como activa.`,
+      }),
+  },
+
+  expenseTypes: {
+    deleteSuccess: (name: string) =>
+      toast.success("Tipo eliminado", {
+        description: `"${name}" fue quitado.`,
+      }),
+    deleteError: () =>
+      toast.error("No se pudo eliminar el tipo", {
+        description:
+          "Puede estar en uso en gastos registrados. Intenta de nuevo.",
+      }),
   },
 
   categories: {
@@ -331,7 +380,14 @@ export const notify = {
       toast.error("No se pudo guardar la nota", {
         description: "Intenta de nuevo en un momento.",
       }),
-    deleteSuccess: () => toast.success("Nota eliminada"),
+    deleteSuccess: (name?: string) =>
+      toast.success("Nota eliminada", {
+        description: name ? `"${name}" fue quitada.` : undefined,
+      }),
+    deleteError: () =>
+      toast.error("No se pudo eliminar la nota", {
+        description: "Intenta de nuevo en un momento.",
+      }),
     attachmentError: () =>
       toast.error("No se pudo subir el archivo", {
         description: "Verifica que sea PDF o imagen y pese menos de 10 MB.",

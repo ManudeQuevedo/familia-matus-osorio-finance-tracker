@@ -56,6 +56,7 @@ import {
 import {
   changePassword,
   createCustomSubcategory,
+  deactivateAccount,
   deleteAccount,
   deleteCustomSubcategory,
   toggleSubcategoryActive,
@@ -67,6 +68,7 @@ import {
 import { toastConfirmDestructive, notify } from "@/lib/toast";
 import type { SettingsSnapshot } from "@/lib/finance/settings-queries";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
 const AVATAR_MIME = new Set(["image/jpeg", "image/png", "image/webp"]);
@@ -102,7 +104,7 @@ function ToggleGroup<T extends string>({
 }) {
   return (
     <motion.div
-      className="inline-flex rounded-lg border border-border-default bg-bg-card p-0.5"
+      className="inline-flex max-md:flex max-md:w-full rounded-lg border border-border-default bg-bg-card p-0.5"
       role="group">
       {options.map((opt) => (
         <button
@@ -111,7 +113,8 @@ function ToggleGroup<T extends string>({
           disabled={disabled}
           onClick={() => onChange(opt.value)}
           className={cn(
-            "rounded-md px-3 py-1.5 text-sm font-medium transition",
+            "rounded-md px-[20px] py-[14px] text-sm font-medium transition max-md:min-h-11 max-md:flex-1 max-md:touch-manipulation",
+            "md:px-3 md:py-1.5 md:min-h-0 md:flex-none",
             value === opt.value
               ? "bg-accent text-accent-foreground shadow-sm"
               : "text-text-secondary hover:text-text-primary dark:text-text-muted",
@@ -383,8 +386,49 @@ export function SettingsPanels({
 
   const onDeleteAccount = (id: string) => {
     const acc = accounts.find((a) => a.id === id);
+    if (!acc) return;
+
+    if (acc.transaction_count > 0) {
+      toast.warning(
+        t("accounts.softDeleteTitle", {
+          count: acc.transaction_count,
+        }),
+        {
+          description: t("accounts.softDeleteHint"),
+          duration: 5000,
+          action: {
+            label: t("accounts.deactivateAction"),
+            onClick: () => {
+              setError(null);
+              startTransition(async () => {
+                const res = await deactivateAccount({ locale, id });
+                if (res.ok) {
+                  setAccounts((list) =>
+                    list.map((x) =>
+                      x.id === id ? { ...x, is_active: false } : x,
+                    ),
+                  );
+                  notify.accounts.deactivatedSuccess(acc.name);
+                  router.refresh();
+                } else {
+                  notify.generic.unexpectedError();
+                }
+              });
+            },
+          },
+          cancel: {
+            label: tc("cancel"),
+            onClick: () => {},
+          },
+        },
+      );
+      return;
+    }
+
     toastConfirmDestructive({
-      title: t("accounts.deleteConfirm"),
+      title: tc("deleteNamed", { name: acc.name }),
+      description: tc("deleteCannotUndo"),
+      duration: 5000,
       confirmLabel: tc("delete"),
       cancelLabel: tc("cancel"),
       onConfirm: () => {
@@ -393,7 +437,7 @@ export function SettingsPanels({
           const res = await deleteAccount({ locale, id });
           if (res.ok) {
             setAccounts((a) => a.filter((x) => x.id !== id));
-            notify.accounts.deleteSuccess(acc?.name ?? "Cuenta");
+            notify.accounts.deleteSuccess(acc.name);
             router.refresh();
           } else {
             notify.accounts.deleteError();
@@ -432,9 +476,11 @@ export function SettingsPanels({
       }),
     );
 
-  const onDeleteSub = (id: string) => {
+  const onDeleteSub = (id: string, name: string) => {
     toastConfirmDestructive({
-      title: t("categories.deleteConfirm"),
+      title: tc("deleteNamed", { name }),
+      description: tc("deleteCannotUndo"),
+      duration: 5000,
       confirmLabel: tc("delete"),
       cancelLabel: tc("cancel"),
       onConfirm: () => {
@@ -475,7 +521,7 @@ export function SettingsPanels({
           avatarUrl={displayAvatarUrl}
           initials={profileInitials}
           size="lg"
-          className="h-24 w-24 text-2xl"
+          className="h-20 w-20 text-xl max-md:mx-auto md:h-24 md:w-24 md:text-2xl"
           onClick={() => avatarInputRef.current?.click()}
         />
         <input
@@ -503,6 +549,7 @@ export function SettingsPanels({
             id="full-name"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
+            className="max-md:h-12 max-md:min-h-12 max-md:text-base"
           />
         </div>
         <div className="space-y-2">
@@ -511,11 +558,15 @@ export function SettingsPanels({
             id="email"
             readOnly
             value={profile.email}
-            className="bg-bg-card-nested"
+            className="bg-bg-card-nested max-md:h-12 max-md:min-h-12 max-md:text-base"
           />
         </div>
-        <div className="flex justify-end">
-          <Button type="button" disabled={pending} onClick={onSaveProfile}>
+        <div className="flex justify-end max-md:justify-stretch">
+          <Button
+            type="button"
+            disabled={pending}
+            onClick={onSaveProfile}
+            className="max-md:h-12 max-md:w-full max-md:px-5 max-md:py-3.5 max-md:text-base">
             {pending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
@@ -530,8 +581,8 @@ export function SettingsPanels({
   const securityBlock = (
     <div
       className={cn(
-        "flex min-h-0 flex-1 flex-col gap-4 md:gap-0",
-        variant === "modal" && "h-full justify-between",
+        "flex min-h-0 flex-1 flex-col gap-6",
+        variant === "modal" && "md:h-full md:justify-between md:gap-0",
       )}>
       <div className="space-y-3 md:flex-1">
         <h3 className="text-sm font-semibold">{t("security.passwordTitle")}</h3>
@@ -544,6 +595,7 @@ export function SettingsPanels({
               autoComplete="current-password"
               value={pwdCurrent}
               onChange={(e) => setPwdCurrent(e.target.value)}
+              className="max-md:h-12 max-md:min-h-12 max-md:text-base"
             />
           </div>
           <div className="space-y-2">
@@ -554,6 +606,7 @@ export function SettingsPanels({
               autoComplete="new-password"
               value={pwdNew}
               onChange={(e) => setPwdNew(e.target.value)}
+              className="max-md:h-12 max-md:min-h-12 max-md:text-base"
             />
           </div>
           <div className="space-y-2">
@@ -564,13 +617,15 @@ export function SettingsPanels({
               autoComplete="new-password"
               value={pwdConfirm}
               onChange={(e) => setPwdConfirm(e.target.value)}
+              className="max-md:h-12 max-md:min-h-12 max-md:text-base"
             />
           </div>
         </div>
         <Button
           type="button"
           disabled={pending || !pwdCurrent || !pwdNew}
-          onClick={onChangePassword}>
+          onClick={onChangePassword}
+          className="max-md:h-12 max-md:w-full max-md:px-5 max-md:text-base">
           {t("security.changePassword")}
         </Button>
       </div>
@@ -605,7 +660,7 @@ export function SettingsPanels({
       </div>
       <div>
         <p className="mb-3 text-sm font-medium">{t("preferences.theme")}</p>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
           {(
             [
               {
@@ -639,7 +694,7 @@ export function SettingsPanels({
       </div>
       <div>
         <p className="mb-3 text-sm font-medium">{t("preferences.accent")}</p>
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap justify-center gap-3 md:justify-start">
           {ACCENT_COLORS.map((key) => (
             <button
               key={key}
@@ -647,7 +702,7 @@ export function SettingsPanels({
               disabled={pending}
               onClick={() => onAccent(key)}
               className={cn(
-                "relative flex h-11 w-11 items-center justify-center rounded-full border-2 transition",
+                "relative flex h-12 w-12 shrink-0 touch-manipulation items-center justify-center rounded-full border-2 transition md:h-11 md:w-11",
                 accentColor === key
                   ? "border-accent ring-2 ring-accent/35"
                   : "border-transparent",
@@ -685,11 +740,11 @@ export function SettingsPanels({
 
   const accountsList = (
     <div className="flex min-h-0 flex-1 flex-col">
-      <ul className="max-h-[min(240px,40vh)] space-y-2 overflow-y-auto md:max-h-[28vh]">
+      <ul className="space-y-2 max-md:overflow-visible md:max-h-[28vh] md:overflow-y-auto">
         {accounts.map((acc) => (
           <li
             key={acc.id}
-            className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border-default px-3 py-2.5 text-sm dark:border-border-default">
+            className="group flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border-default px-3 py-2.5 text-sm dark:border-border-default">
             <div className="flex min-w-0 items-center gap-2">
               <span
                 className="h-2.5 w-2.5 shrink-0 rounded-full"
@@ -707,7 +762,7 @@ export function SettingsPanels({
                 type="button"
                 size="icon"
                 variant="ghost"
-                className="h-8 w-8"
+                className="h-11 min-h-11 w-11 min-w-11 touch-manipulation md:h-8 md:min-h-8 md:w-8 md:min-w-8"
                 onClick={() =>
                   setAccountForm({
                     id: acc.id,
@@ -722,15 +777,11 @@ export function SettingsPanels({
                 type="button"
                 size="icon"
                 variant="ghost"
-                className="h-8 w-8"
-                disabled={acc.transaction_count > 0 || pending}
-                title={
-                  acc.transaction_count > 0
-                    ? t("accounts.cannotDelete")
-                    : undefined
-                }
-                onClick={() => onDeleteAccount(acc.id)}>
-                <Trash2 className="h-4 w-4" />
+                className="h-11 min-h-11 w-11 min-w-11 touch-manipulation text-muted-foreground transition-[opacity,color] duration-[150ms] hover:text-red-500 md:h-8 md:min-h-8 md:w-8 md:min-w-8 md:pointer-events-none md:opacity-0 md:group-hover:pointer-events-auto md:group-hover:opacity-100"
+                disabled={pending}
+                onClick={() => onDeleteAccount(acc.id)}
+                aria-label={tc("delete")}>
+                <Trash2 className="h-[15px] w-[15px]" />
               </Button>
             </div>
           </li>
@@ -745,6 +796,7 @@ export function SettingsPanels({
               onChange={(e) =>
                 setAccountForm((f) => (f ? { ...f, name: e.target.value } : f))
               }
+              className="max-md:h-12 max-md:min-h-12 max-md:text-base"
             />
           </div>
           <div className="space-y-1.5">
@@ -761,7 +813,7 @@ export function SettingsPanels({
                     : f,
                 )
               }>
-              <SelectTrigger>
+              <SelectTrigger className="max-md:h-12 max-md:text-base">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -781,7 +833,7 @@ export function SettingsPanels({
                   key={c}
                   type="button"
                   className={cn(
-                    "h-7 w-7 rounded-full border-2 transition",
+                    "h-9 min-h-9 w-9 min-w-9 touch-manipulation rounded-full border-2 transition md:h-7 md:min-h-7 md:w-7 md:min-w-7",
                     accountForm.color === c
                       ? "border-text-primary"
                       : "border-transparent",
@@ -794,19 +846,21 @@ export function SettingsPanels({
               ))}
             </div>
           </div>
-          <div className="flex flex-wrap gap-2 pt-1">
+          <div className="flex flex-col gap-2 pt-1 max-md:w-full md:flex-row md:flex-wrap">
             <Button
               type="button"
               size="sm"
               disabled={pending}
-              onClick={onSaveAccount}>
+              onClick={onSaveAccount}
+              className="max-md:h-12 max-md:w-full max-md:px-5 max-md:text-base">
               {t("accounts.save")}
             </Button>
             <Button
               type="button"
               size="sm"
               variant="outline"
-              onClick={() => setAccountForm(null)}>
+              onClick={() => setAccountForm(null)}
+              className="max-md:h-12 max-md:w-full max-md:px-5 max-md:text-base">
               {t("accounts.cancel")}
             </Button>
           </div>
@@ -816,7 +870,7 @@ export function SettingsPanels({
           type="button"
           variant="outline"
           size="sm"
-          className="mt-3 w-fit"
+          className="mt-3 w-fit max-md:h-12 max-md:w-full max-md:px-5 max-md:text-base"
           onClick={() =>
             setAccountForm({
               name: "",
@@ -831,30 +885,47 @@ export function SettingsPanels({
     </div>
   );
 
+  const systemCategories = categories.filter((c) => c.is_system);
+
   const categoriesBlock = (
     <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden">
       <p className="text-xs font-medium uppercase tracking-wide text-text-muted">
         {t("categories.systemTitle")}
       </p>
-      <ul className="max-h-[min(200px,35vh)] space-y-1.5 overflow-y-auto md:max-h-[24vh]">
-        {categories
-          .filter((c) => c.is_system)
-          .map((c) => {
-            const Icon = categoryLucideIcon(c.icon);
-            return (
-              <li
-                key={c.id}
-                className="flex items-center gap-2 rounded-lg border border-border-subtle bg-bg-card-nested/80 px-2.5 py-1.5 text-sm dark:border-border-default dark:bg-bg-card-nested">
-                <Icon className="h-4 w-4 shrink-0" style={{ color: c.color }} />
-                <span className="min-w-0 truncate">{categoryName(c)}</span>
-                <Badge
-                  variant="outline"
-                  className="ml-auto shrink-0 text-[10px]">
-                  {t("categories.systemBadge")}
-                </Badge>
-              </li>
-            );
-          })}
+      <div className="grid grid-cols-2 gap-2 md:hidden">
+        {systemCategories.map((c) => {
+          const Icon = categoryLucideIcon(c.icon);
+          return (
+            <div
+              key={c.id}
+              className="flex min-h-11 items-center gap-2 rounded-lg border border-border-default bg-bg-card-nested px-2.5 py-2 text-xs dark:border-border-default">
+              <Icon
+                className="h-3.5 w-3.5 shrink-0"
+                style={{ color: c.color }}
+                aria-hidden
+              />
+              <span className="min-w-0 truncate leading-tight">
+                {categoryName(c)}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      <ul className="hidden max-h-[min(200px,35vh)] space-y-1.5 overflow-y-auto md:block md:max-h-[24vh]">
+        {systemCategories.map((c) => {
+          const Icon = categoryLucideIcon(c.icon);
+          return (
+            <li
+              key={c.id}
+              className="flex items-center gap-2 rounded-lg border border-border-subtle bg-bg-card-nested/80 px-2.5 py-1.5 text-sm dark:border-border-default dark:bg-bg-card-nested">
+              <Icon className="h-4 w-4 shrink-0" style={{ color: c.color }} />
+              <span className="min-w-0 truncate">{categoryName(c)}</span>
+              <Badge variant="outline" className="ml-auto shrink-0 text-[10px]">
+                {t("categories.systemBadge")}
+              </Badge>
+            </li>
+          );
+        })}
       </ul>
       <div className="border-t border-border-subtle pt-3">
         <p className="mb-2 text-sm font-medium">
@@ -869,7 +940,7 @@ export function SettingsPanels({
                 onValueChange={(v) =>
                   setNewSub((s) => ({ ...s, categoryId: v }))
                 }>
-                <SelectTrigger className="h-9">
+                <SelectTrigger className="h-9 max-md:h-12 max-md:text-base">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -884,7 +955,7 @@ export function SettingsPanels({
             <div className="space-y-1.5">
               <Label className="text-xs">{t("categories.subName")}</Label>
               <Input
-                className="h-9"
+                className="h-9 max-md:h-12 max-md:min-h-12 max-md:text-base"
                 value={newSub.name}
                 onChange={(e) =>
                   setNewSub((s) => ({ ...s, name: e.target.value }))
@@ -896,7 +967,7 @@ export function SettingsPanels({
                 {t("categories.subDescription")}
               </Label>
               <Input
-                className="h-9"
+                className="h-9 max-md:h-12 max-md:min-h-12 max-md:text-base"
                 value={newSub.description}
                 onChange={(e) =>
                   setNewSub((s) => ({ ...s, description: e.target.value }))
@@ -908,12 +979,13 @@ export function SettingsPanels({
             type="button"
             size="sm"
             disabled={pending || !newSub.name.trim()}
-            onClick={onAddSub}>
+            onClick={onAddSub}
+            className="max-md:h-12 max-md:w-full max-md:px-5 max-md:text-base">
             <Plus className="mr-2 h-4 w-4" />
             {t("categories.addSub")}
           </Button>
         </div>
-        <div className="mt-3 max-h-[min(180px,30vh)] space-y-3 overflow-y-auto md:max-h-[20vh]">
+        <div className="mt-3 space-y-3 max-md:space-y-4 md:max-h-[20vh] md:overflow-y-auto">
           {categories.map((cat) => {
             const custom = customSubsByCategory.get(cat.id) ?? [];
             if (custom.length === 0) return null;
@@ -926,7 +998,7 @@ export function SettingsPanels({
                   {custom.map((sub) => (
                     <li
                       key={sub.id}
-                      className="flex items-center justify-between gap-2 rounded-lg border border-border-default px-2.5 py-1.5 text-sm dark:border-border-default">
+                      className="group flex items-center justify-between gap-2 rounded-lg border border-border-default px-2.5 py-1.5 text-sm dark:border-border-default">
                       <div className="min-w-0">
                         <p className="truncate font-medium">{sub.name}</p>
                         {sub.description ? (
@@ -936,7 +1008,7 @@ export function SettingsPanels({
                         ) : null}
                       </div>
                       <div className="flex shrink-0 items-center gap-1">
-                        <label className="flex cursor-pointer items-center gap-1 text-xs">
+                        <label className="flex min-h-11 cursor-pointer items-center gap-2 text-xs touch-manipulation">
                           <input
                             type="checkbox"
                             checked={sub.is_active}
@@ -944,16 +1016,17 @@ export function SettingsPanels({
                             onChange={(e) =>
                               onToggleSub(sub.id, e.target.checked)
                             }
-                            className="h-3.5 w-3.5 rounded border-zinc-300"
+                            className="h-5 w-5 shrink-0 rounded border-zinc-300 md:h-3.5 md:w-3.5"
                           />
                         </label>
                         <Button
                           type="button"
                           size="icon"
                           variant="ghost"
-                          className="h-8 w-8"
-                          onClick={() => onDeleteSub(sub.id)}>
-                          <Trash2 className="h-3.5 w-3.5" />
+                          className="h-11 min-h-11 w-11 min-w-11 touch-manipulation text-muted-foreground transition-[opacity,color] duration-[150ms] hover:text-red-500 md:h-8 md:min-h-8 md:w-8 md:min-w-8 md:pointer-events-none md:opacity-0 md:group-hover:pointer-events-auto md:group-hover:opacity-100"
+                          onClick={() => onDeleteSub(sub.id, sub.name)}
+                          aria-label={tc("delete")}>
+                          <Trash2 className="h-[15px] w-[15px]" />
                         </Button>
                       </div>
                     </li>
@@ -1005,8 +1078,7 @@ export function SettingsPanels({
         ) : null}
         <div
           className={cn(
-            "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden md:overflow-hidden",
-            "max-md:min-h-0 max-md:flex-1 max-md:overflow-y-auto",
+            "flex min-h-0 min-w-0 flex-1 flex-col",
             contentClassName,
           )}>
           {tabBody()}

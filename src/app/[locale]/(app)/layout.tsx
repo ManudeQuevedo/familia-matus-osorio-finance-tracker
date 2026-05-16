@@ -4,10 +4,14 @@ import {
   FinanceAppShell,
   type FinanceShellUser,
 } from "@/components/finance/FinanceAppShell";
+import { FinanceHotkeysProvider } from "@/components/layout/finance-hotkeys-provider";
 import { SettingsModalHost } from "@/components/finance/SettingsModal";
 import { PageTransition } from "@/components/motion/PageTransition";
-import { SettingsModalProvider } from "@/contexts/settings-modal-context";
 import { QueryProvider } from "@/components/providers/QueryProvider";
+import { CommandMenuProvider } from "@/contexts/command-menu-context";
+import { FabQuickActionsProvider } from "@/contexts/fab-quick-actions-context";
+import { HotkeysHelpProvider } from "@/contexts/hotkeys-help-context";
+import { SettingsModalProvider } from "@/contexts/settings-modal-context";
 import { getCachedFamilyIdForUser } from "@/lib/supabase/family";
 import { RealtimeSync } from "@/components/providers/RealtimeSync";
 import { ToastHooksBridge } from "@/components/providers/ToastHooksBridge";
@@ -79,14 +83,22 @@ export default async function AppGroupLayout({
         <SettingsModalProvider>
           <ToastHooksBridge />
           <AiChatProvider>
-            <SettingsModalHost
-              locale={locale}
-              initial={settingsSnapshot}
-              loadError={settingsLoadError}
-            />
-            <FinanceAppShell user={shellUser}>
-              <PageTransition>{children}</PageTransition>
-            </FinanceAppShell>
+            <FabQuickActionsProvider>
+              <CommandMenuProvider>
+                <HotkeysHelpProvider>
+                  <FinanceHotkeysProvider>
+                    <SettingsModalHost
+                      locale={locale}
+                      initial={settingsSnapshot}
+                      loadError={settingsLoadError}
+                    />
+                    <FinanceAppShell user={shellUser}>
+                      <PageTransition>{children}</PageTransition>
+                    </FinanceAppShell>
+                  </FinanceHotkeysProvider>
+                </HotkeysHelpProvider>
+              </CommandMenuProvider>
+            </FabQuickActionsProvider>
           </AiChatProvider>
         </SettingsModalProvider>
       </UserPreferencesProvider>

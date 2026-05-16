@@ -125,18 +125,29 @@
         "savingsRate": { "title": "Tasa de ahorro" }
       },
       "paycheck": {
-        "title": "Quincenas — próximos pagos",
+        "title": "Quincenas — recurrentes",
         "q1": "Quincena 1 (1–15)",
         "q2": "Quincena 2 (15–30)",
-        "empty": "No hay gastos programados en esta quincena.",
+        "empty": "No hay recurrentes en esta quincena.",
         "paid": "Pagado",
         "pending": "Pendiente",
         "markPaid": "Marcar como pagado",
         "total": "Total de la quincena"
       },
+      "plannedUpcoming": {
+        "title": "Planificados — próximos 7 días",
+        "empty": "No hay planificados en la próxima semana."
+      },
+      "expenseTypes": {
+        "recurring": "Recurrentes",
+        "planned": "Planificados",
+        "unplanned": "No planificados",
+        "unexpected": "Imprevistos"
+      },
       "categories": {
         "title": "Gastos por categoría",
-        "empty": "Sin gastos por categoría este mes."
+        "empty": "Sin gastos por categoría este mes.",
+        "byTypeTitle": "Por tipo de gasto"
       },
       "goals": {
         "title": "Metas",
@@ -202,6 +213,8 @@
       "save": "Guardar",
       "cancel": "Cancelar",
       "delete": "Eliminar",
+      "deleteNamed": "¿Eliminar \"{name}\"?",
+      "deleteCannotUndo": "Esta acción no se puede deshacer.",
       "all": "Todas",
       "loading": "Cargando…",
       "saving": "Guardando…",
@@ -212,18 +225,81 @@
       "openMenu": "Acciones rápidas",
       "closeMenu": "Cerrar menú",
       "askAi": "Preguntar a IA",
-      "antExpense": "Gasto hormiga",
-      "quickExpense": "Gasto rápido",
+      "antExpense": "No planificado",
+      "quickExpense": "Imprevisto",
       "income": "Ingreso",
       "goal": "Meta",
       "quickNote": "Nota rápida"
     },
+    "commandMenu": {
+      "searchTriggerPlaceholder": "Buscar…",
+      "searchTriggerAria": "Abrir menú de comandos",
+      "searchPlaceholder": "Buscar páginas o tus datos…",
+      "navigationHeading": "Navegación",
+      "actionsHeading": "Acciones rápidas",
+      "searching": "Buscando…",
+      "noResults": "Sin resultados",
+      "typeToSearchHint": "Empieza a escribir o elige una acción.",
+      "quickExpense": "Registrar imprevisto",
+      "quickIncome": "Registrar ingreso",
+      "newGoal": "Nueva meta",
+      "quickNote": "Nota rápida",
+      "settings": "Configuración",
+      "fromExpenses": "Gastos",
+      "fromGoals": "Metas",
+      "fromDebts": "Deudas",
+      "fromNotes": "Notas",
+      "expenseKind": {
+        "variable": "Variable",
+        "recurring_template": "Recurrente",
+        "record": "Cargo del mes"
+      }
+    },
+    "hotkeys": {
+      "title": "Atajos de teclado",
+      "subtitle": "Solo escritorio · No aplican mientras escribes en un campo",
+      "close": "Cerrar ayuda",
+      "groupNav": "Navegación",
+      "groupActions": "Acciones rápidas",
+      "groupUi": "Interfaz",
+      "navDashboard": "Dashboard",
+      "navExpenses": "Gastos",
+      "navIncomes": "Ingresos",
+      "navGoals": "Metas",
+      "navDebts": "Deudas",
+      "navReports": "Reportes",
+      "actExpense": "Nuevo gasto",
+      "actIncome": "Registrar ingreso",
+      "actGoal": "Nueva meta",
+      "actAi": "IA financiera",
+      "actSettings": "Configuración",
+      "uiSearch": "Búsqueda global",
+      "uiSidebar": "Barra lateral",
+      "uiCloseModal": "Cerrar modal",
+      "uiShortcuts": "Ver atajos",
+      "keyEscape": "ESC"
+    },
     "expenses": {
       "title": "Gastos",
+      "addExpense": "+ Agregar gasto",
       "tabs": {
         "recurring": "Recurrentes",
-        "variable": "Variables",
-        "add": "Agregar"
+        "planned": "Planificados",
+        "unplanned": "No planificados",
+        "unexpected": "Imprevistos"
+      },
+      "summary": {
+        "recurring": "Total recurrentes",
+        "planned": "Total planificados",
+        "unplanned": "Total no planificados",
+        "unexpected": "Total imprevistos",
+        "grand": "Total del mes"
+      },
+      "freq": {
+        "monthly": "Mensual",
+        "bimonthly": "Bimestral",
+        "annual": "Anual",
+        "unique": "Única"
       },
       "quincena": {
         "q1": "Quincena 1",
@@ -231,56 +307,173 @@
         "total": "Total quincena"
       },
       "recurring": {
-        "empty": "No hay gastos recurrentes este mes.",
-        "add": "Nuevo recurrente",
+        "empty": "No hay recurrentes con estos filtros.",
+        "freqFilter": "Frecuencia",
         "columns": {
           "name": "Nombre",
           "subcategory": "Subcategoría",
+          "freq": "Frecuencia",
           "due": "Vencimiento",
           "amount": "Monto",
           "account": "Cuenta",
-          "status": "Status"
+          "status": "Estado"
         },
         "everyPaycheck": "Cada quincena",
-        "markPaid": "Pagado",
+        "markPaid": "Marcar pagado",
         "editAmount": "Monto pagado",
-        "history": "Historial",
         "historyTitle": "Historial de pagos",
         "historyEmpty": "Sin historial aún.",
         "overdue": "Vencido"
       },
-      "variable": {
-        "empty": "No hay gastos registrados este mes.",
-        "total": "Total acumulado",
-        "dateFrom": "Desde",
-        "dateTo": "Hasta",
-        "swipeHint": "Desliza para eliminar"
+      "planned": {
+        "empty": "No hay gastos planificados este mes.",
+        "estimated": "Monto estimado",
+        "paidAmount": "Monto pagado",
+        "badges": {
+          "today": "Hoy",
+          "upcoming": "Próximo",
+          "overdue": "Vencido"
+        }
       },
-      "form": {
-        "recurringTitle": "Nuevo gasto recurrente",
-        "variableTitle": "Nuevo gasto variable",
-        "kindRecurring": "Recurrente",
-        "kindVariable": "Variable",
-        "name": "Nombre del gasto",
-        "description": "Descripción",
-        "category": "Categoría",
-        "subcategory": "Subcategoría",
-        "newSubcategory": "Nueva subcategoría",
-        "newSubcategoryPlaceholder": "Nombre",
-        "amount": "Monto (MXN)",
-        "paycheck": "Quincena",
-        "dueDay": "Día de vencimiento",
-        "dueEveryPaycheck": "Cada quincena",
-        "account": "Cuenta origen",
-        "active": "Activo",
-        "notes": "Notas (opcional)",
-        "date": "Fecha",
-        "noAccounts": "Crea una cuenta en Configuración para continuar."
+      "unplanned": {
+        "empty": "No hay gastos no planificados este mes.",
+        "monthTotal": "No planificados — total del mes",
+        "noType": "Otros"
+      },
+      "unexpected": {
+        "empty": "No hay imprevistos este mes.",
+        "monthTotal": "Imprevistos — total del mes",
+        "noType": "Otros"
       },
       "status": {
         "paid": "Pagado",
         "pending": "Pendiente",
         "overdue": "Vencido"
+      },
+      "addModal": {
+        "ariaDescription": "Agregar un nuevo gasto por pasos.",
+        "step1Title": "¿Qué tipo de gasto es?",
+        "step2Title": "Nuevo gasto — {type}",
+        "back": "Volver",
+        "amount": "Monto (MXN)",
+        "date": "Fecha",
+        "notes": "Notas",
+        "newSubcategory": "Nueva subcategoría",
+        "newSubcategoryPh": "Nombre",
+        "addType": "Agregar tipo",
+        "newTypePh": "Nombre del tipo",
+        "paycheck": {
+          "q1": "Quincena 1 (días 1–15)",
+          "q2": "Quincena 2 (días 15–30)",
+          "both": "Ambas quincenas"
+        },
+        "kinds": {
+          "recurring": {
+            "title": "Recurrente",
+            "short": "Recurrente",
+            "desc": "Pagos fijos y periódicos."
+          },
+          "planned": {
+            "title": "Planificado",
+            "short": "Planificado",
+            "desc": "Lo sabías de antemano."
+          },
+          "unplanned": {
+            "title": "No planificado",
+            "short": "No planificado",
+            "desc": "Gasto espontáneo."
+          },
+          "unexpected": {
+            "title": "Imprevisto",
+            "short": "Imprevisto",
+            "desc": "Obligatorio e inesperado."
+          }
+        },
+        "recurring": {
+          "name": "Nombre del gasto",
+          "category": "Categoría",
+          "subcategory": "Subcategoría",
+          "frequency": "Frecuencia",
+          "paycheck": "Quincena",
+          "dueEvery": "Cada quincena en este periodo",
+          "dueDay": "Día de vencimiento (1–31)",
+          "account": "Cuenta origen"
+        },
+        "planned": {
+          "name": "Nombre del gasto",
+          "category": "Categoría",
+          "subcategory": "Subcategoría",
+          "plannedDate": "Fecha planeada",
+          "repeats": "¿Se repite?",
+          "repeatFreq": "Frecuencia",
+          "account": "Cuenta origen"
+        },
+        "unplanned": {
+          "type": "Tipo de gasto",
+          "description": "Descripción (opcional)"
+        },
+        "unexpected": {
+          "type": "Tipo de imprevisto",
+          "description": "Descripción",
+          "permanent": "¿Tiene solución permanente?",
+          "permanentNote": "Describe la solución o prevención"
+        }
+      },
+      "importExport": {
+        "import": "Importar",
+        "export": "Exportar",
+        "dialogTitle": "Importar gastos desde hoja de cálculo",
+        "dialogDescription": "Sube una exportación de Google Sheets (.xlsx, .xls o .csv) y empareja las columnas.",
+        "step1Title": "Subir archivo",
+        "dropHere": "Arrastra tu archivo Excel o CSV aquí",
+        "selectFile": "Seleccionar archivo",
+        "formats": "Formatos: .xlsx, .xls, .csv",
+        "emptyFile": "El archivo no tiene filas para importar.",
+        "parseError": "No se pudo leer el archivo. Revisa el formato.",
+        "step2Title": "Vista previa y mapeo de columnas",
+        "step3Title": "Validación",
+        "step4Title": "Resultado",
+        "back": "Atrás",
+        "next": "Siguiente",
+        "close": "Cerrar",
+        "remapTitle": "Empareja categorías de la hoja con las tuyas",
+        "unknownCategory": "Categorías «{label}»",
+        "pickCategory": "Elegir categoría",
+        "rowSummary": "{ready} filas listas · {warn} con advertencias · {invalid} inválidas",
+        "importN": "Importar {count} gastos",
+        "importing": "Importando {count} gastos…",
+        "progress": "{pct}%",
+        "done": "{count} gastos importados correctamente.",
+        "failures": "Algunas filas no se pudieron importar",
+        "exportEmpty": "No hay gastos recurrentes o planificados este mes para exportar.",
+        "colName": "Gasto",
+        "colCategory": "Categoría",
+        "colAmount": "Monto",
+        "colIssues": "Detalle",
+        "map": {
+          "pick": "Elegir columna",
+          "none": "Ninguna",
+          "name": "¿Cuál columna es el nombre del gasto?",
+          "category": "¿Cuál columna es la categoría?",
+          "amount": "¿Cuál columna es el monto?",
+          "dueDate": "¿Cuál columna es el día de vencimiento o «cada quincena»?",
+          "paycheck": "¿Cuál columna es la quincena (1 o 2)?",
+          "status": "¿Cuál columna es el estado? (opcional)"
+        },
+        "warnings": {
+          "paid_default_account": "Pagado usando tu cuenta predeterminada"
+        },
+        "errors": {
+          "missing_name": "Falta el nombre",
+          "invalid_amount": "Monto inválido",
+          "category_not_found": "Categoría no encontrada",
+          "missing_account": "No hay cuenta para el pago",
+          "no_subcategory_for_category": "Agrega primero una subcategoría en esta categoría",
+          "invalid_row": "Fila inválida",
+          "unauthorized": "Inicia sesión",
+          "family_not_configured": "El grupo familiar no está configurado",
+          "unsupported_format": "Formato de archivo no soportado"
+        }
       }
     },
     "incomes": {
@@ -519,6 +712,7 @@
         "date": "Fecha",
         "notes": "Notas (opcional)"
       },
+      "contributionsTitle": "Abonos registrados",
       "ai": {
         "analyze": "Ver análisis IA",
         "title": "Análisis con IA",
@@ -562,6 +756,7 @@
         "isExtra": "¿Es pago extra?",
         "notes": "Notas"
       },
+      "paymentsTitle": "Pagos registrados",
       "ai": {
         "plan": "Plan IA",
         "title": "Plan de pagos con IA",
@@ -648,6 +843,9 @@
         "save": "Guardar",
         "cancel": "Cancelar",
         "deleteConfirm": "¿Eliminar esta cuenta?",
+        "softDeleteTitle": "No se puede eliminar — tiene {count} transacciones asociadas.",
+        "softDeleteHint": "Desactívala en su lugar.",
+        "deactivateAction": "Desactivar",
         "cannotDelete": "No se puede eliminar: tiene transacciones asociadas.",
         "txCount": "{count, plural, one {# transacción} other {# transacciones}}",
         "types": {
@@ -713,7 +911,36 @@
         "untitled": "Sin título",
         "searchPlaceholder": "Buscar en el historial…",
         "delete": "Eliminar",
-        "deleteConfirm": "¿Eliminar esta conversación?"
+        "deleteConfirm": "¿Eliminar esta conversación?",
+        "conversationsTitle": "Conversaciones",
+        "newConversationWide": "Nueva conversación",
+        "searchConversations": "Buscar conversaciones…",
+        "groupToday": "Hoy",
+        "groupYesterday": "Ayer",
+        "groupThisWeek": "Esta semana",
+        "groupThisMonth": "Este mes",
+        "groupOlder": "Más antiguas",
+        "messagesCount": "{count, plural, one {# mensaje} other {# mensajes}}",
+        "openInChat": "Abrir en chat",
+        "rename": "Renombrar",
+        "deleteConversation": "Eliminar conversación",
+        "clearHistory": "Limpiar historial",
+        "deleteConversationWarn": "¿Eliminar esta conversación?",
+        "deleteConversationDesc": "Se eliminarán todos los mensajes. Esta acción no se puede deshacer.",
+        "clearHistoryWarn": "¿Limpiar todo el historial?",
+        "clearHistoryDesc": "Se eliminarán TODAS las conversaciones con la IA. Esto no se puede deshacer.",
+        "clearAllAction": "Limpiar todo",
+        "emptyPreviewTitle": "Selecciona una conversación",
+        "emptyPreviewSubtitle": "O inicia una nueva para hablar con tu asesor financiero.",
+        "emptyPreviewCta": "Nueva conversación",
+        "previewOpenChat": "Abrir en chat →",
+        "previewContinue": "Continuar esta conversación →",
+        "noSearchResults": "No se encontraron conversaciones",
+        "noSearchResultsFor": "No hay resultados para «{query}»",
+        "emptyStateTitle": "Aún no tienes conversaciones",
+        "emptyStateSubtitle": "Haz tu primera pregunta al asesor financiero.",
+        "emptyStateCta": "Empezar ahora",
+        "conversationMenu": "Menú de conversación"
       }
     },
     "placeholders": {

@@ -125,18 +125,29 @@
         "savingsRate": { "title": "Savings rate" }
       },
       "paycheck": {
-        "title": "Bi-weekly — upcoming payments",
+        "title": "Bi-weekly — recurring payments",
         "q1": "Period 1 (1–15)",
         "q2": "Period 2 (15–30)",
-        "empty": "No scheduled items for this period.",
+        "empty": "No recurring items for this period.",
         "paid": "Paid",
         "pending": "Pending",
         "markPaid": "Mark as paid",
         "total": "Period total"
       },
+      "plannedUpcoming": {
+        "title": "Planned — next 7 days",
+        "empty": "No planned expenses due in the next week."
+      },
+      "expenseTypes": {
+        "recurring": "Recurring",
+        "planned": "Planned",
+        "unplanned": "Unplanned",
+        "unexpected": "Unexpected"
+      },
       "categories": {
         "title": "Spending by category",
-        "empty": "No category spending for this month yet."
+        "empty": "No category spending for this month yet.",
+        "byTypeTitle": "By expense type"
       },
       "goals": {
         "title": "Goals",
@@ -202,6 +213,8 @@
       "save": "Save",
       "cancel": "Cancel",
       "delete": "Delete",
+      "deleteNamed": "Delete \"{name}\"?",
+      "deleteCannotUndo": "This action cannot be undone.",
       "all": "All",
       "loading": "Loading…",
       "saving": "Saving…",
@@ -212,18 +225,81 @@
       "openMenu": "Quick actions",
       "closeMenu": "Close menu",
       "askAi": "Ask AI",
-      "antExpense": "Small spend",
-      "quickExpense": "Quick expense",
+      "antExpense": "Unplanned expense",
+      "quickExpense": "Unexpected expense",
       "income": "Income",
       "goal": "Goal",
       "quickNote": "Quick note"
     },
+    "commandMenu": {
+      "searchTriggerPlaceholder": "Search…",
+      "searchTriggerAria": "Open command menu",
+      "searchPlaceholder": "Search pages or data…",
+      "navigationHeading": "Navigation",
+      "actionsHeading": "Quick actions",
+      "searching": "Searching…",
+      "noResults": "No results",
+      "typeToSearchHint": "Start typing or pick an action.",
+      "quickExpense": "Log unexpected expense",
+      "quickIncome": "Record income",
+      "newGoal": "New goal",
+      "quickNote": "Quick note",
+      "settings": "Settings",
+      "fromExpenses": "Expenses",
+      "fromGoals": "Goals",
+      "fromDebts": "Debts",
+      "fromNotes": "Notes",
+      "expenseKind": {
+        "variable": "Variable",
+        "recurring_template": "Recurring",
+        "record": "Period charge"
+      }
+    },
+    "hotkeys": {
+      "title": "Keyboard shortcuts",
+      "subtitle": "Desktop only · Disabled while typing in fields",
+      "close": "Close help",
+      "groupNav": "Navigation",
+      "groupActions": "Quick actions",
+      "groupUi": "Interface",
+      "navDashboard": "Dashboard",
+      "navExpenses": "Expenses",
+      "navIncomes": "Income",
+      "navGoals": "Goals",
+      "navDebts": "Debts",
+      "navReports": "Reports",
+      "actExpense": "New expense",
+      "actIncome": "Record income",
+      "actGoal": "New goal",
+      "actAi": "Financial AI",
+      "actSettings": "Settings",
+      "uiSearch": "Global search",
+      "uiSidebar": "Sidebar",
+      "uiCloseModal": "Close dialog",
+      "uiShortcuts": "Shortcut help",
+      "keyEscape": "Esc"
+    },
     "expenses": {
       "title": "Expenses",
+      "addExpense": "+ Add expense",
       "tabs": {
         "recurring": "Recurring",
-        "variable": "Variable",
-        "add": "Add"
+        "planned": "Planned",
+        "unplanned": "Unplanned",
+        "unexpected": "Unexpected"
+      },
+      "summary": {
+        "recurring": "Recurring total",
+        "planned": "Planned total",
+        "unplanned": "Unplanned total",
+        "unexpected": "Unexpected total",
+        "grand": "Month total"
+      },
+      "freq": {
+        "monthly": "Monthly",
+        "bimonthly": "Bi-monthly",
+        "annual": "Annual",
+        "unique": "One-time"
       },
       "quincena": {
         "q1": "Period 1",
@@ -231,56 +307,173 @@
         "total": "Period total"
       },
       "recurring": {
-        "empty": "No recurring expenses this month.",
-        "add": "New recurring",
+        "empty": "No recurring expenses match these filters.",
+        "freqFilter": "Frequency",
         "columns": {
           "name": "Name",
           "subcategory": "Subcategory",
+          "freq": "Frequency",
           "due": "Due",
           "amount": "Amount",
           "account": "Account",
           "status": "Status"
         },
         "everyPaycheck": "Every paycheck",
-        "markPaid": "Paid",
+        "markPaid": "Mark paid",
         "editAmount": "Paid amount",
-        "history": "History",
         "historyTitle": "Payment history",
         "historyEmpty": "No history yet.",
         "overdue": "Overdue"
       },
-      "variable": {
-        "empty": "No expenses recorded this month.",
-        "total": "Running total",
-        "dateFrom": "From",
-        "dateTo": "To",
-        "swipeHint": "Swipe to delete"
+      "planned": {
+        "empty": "No planned expenses this month.",
+        "estimated": "Estimated",
+        "paidAmount": "Paid amount",
+        "badges": {
+          "today": "Today",
+          "upcoming": "Upcoming",
+          "overdue": "Overdue"
+        }
       },
-      "form": {
-        "recurringTitle": "New recurring expense",
-        "variableTitle": "New variable expense",
-        "kindRecurring": "Recurring",
-        "kindVariable": "Variable",
-        "name": "Expense name",
-        "description": "Description",
-        "category": "Category",
-        "subcategory": "Subcategory",
-        "newSubcategory": "New subcategory",
-        "newSubcategoryPlaceholder": "Name",
-        "amount": "Amount (MXN)",
-        "paycheck": "Pay period",
-        "dueDay": "Due day",
-        "dueEveryPaycheck": "Every paycheck",
-        "account": "Source account",
-        "active": "Active",
-        "notes": "Notes (optional)",
-        "date": "Date",
-        "noAccounts": "Create an account in Settings to continue."
+      "unplanned": {
+        "empty": "No unplanned expenses this month.",
+        "monthTotal": "Unplanned — month total",
+        "noType": "Other"
+      },
+      "unexpected": {
+        "empty": "No unexpected expenses this month.",
+        "monthTotal": "Unexpected — month total",
+        "noType": "Other"
       },
       "status": {
         "paid": "Paid",
         "pending": "Pending",
         "overdue": "Overdue"
+      },
+      "addModal": {
+        "ariaDescription": "Add a new expense in guided steps.",
+        "step1Title": "What kind of expense is this?",
+        "step2Title": "New {type} expense",
+        "back": "Back",
+        "amount": "Amount (MXN)",
+        "date": "Date",
+        "notes": "Notes",
+        "newSubcategory": "New subcategory",
+        "newSubcategoryPh": "Name",
+        "addType": "Add type",
+        "newTypePh": "Type name",
+        "paycheck": {
+          "q1": "Period 1 (days 1–15)",
+          "q2": "Period 2 (days 15–30)",
+          "both": "Both periods"
+        },
+        "kinds": {
+          "recurring": {
+            "title": "Recurring",
+            "short": "Recurring",
+            "desc": "Fixed and periodic bills."
+          },
+          "planned": {
+            "title": "Planned",
+            "short": "Planned",
+            "desc": "You knew about it in advance."
+          },
+          "unplanned": {
+            "title": "Unplanned",
+            "short": "Unplanned",
+            "desc": "Spontaneous spending."
+          },
+          "unexpected": {
+            "title": "Unexpected",
+            "short": "Unexpected",
+            "desc": "Mandatory surprise expense."
+          }
+        },
+        "recurring": {
+          "name": "Expense name",
+          "category": "Category",
+          "subcategory": "Subcategory",
+          "frequency": "Frequency",
+          "paycheck": "Pay period",
+          "dueEvery": "Every paycheck in this period",
+          "dueDay": "Due day (1–31)",
+          "account": "Source account"
+        },
+        "planned": {
+          "name": "Expense name",
+          "category": "Category",
+          "subcategory": "Subcategory",
+          "plannedDate": "Planned date",
+          "repeats": "Repeats?",
+          "repeatFreq": "Repeat frequency",
+          "account": "Source account"
+        },
+        "unplanned": {
+          "type": "Expense type",
+          "description": "Description (optional)"
+        },
+        "unexpected": {
+          "type": "Unexpected type",
+          "description": "Description",
+          "permanent": "Has a permanent fix / prevention?",
+          "permanentNote": "Describe the solution"
+        }
+      },
+      "importExport": {
+        "import": "Import",
+        "export": "Export",
+        "dialogTitle": "Import expenses from spreadsheet",
+        "dialogDescription": "Upload a Google Sheet export (.xlsx, .xls, or .csv) and map columns to your categories.",
+        "step1Title": "Upload",
+        "dropHere": "Drag and drop your Excel or CSV file here",
+        "selectFile": "Select file",
+        "formats": "Accepted formats: .xlsx, .xls, .csv",
+        "emptyFile": "This file has no rows to import.",
+        "parseError": "Could not read this file. Check the format and try again.",
+        "step2Title": "Preview and column mapping",
+        "step3Title": "Validate",
+        "step4Title": "Import result",
+        "back": "Back",
+        "next": "Next",
+        "close": "Close",
+        "remapTitle": "Map sheet categories to yours",
+        "unknownCategory": "Categories “{label}”",
+        "pickCategory": "Match to your category",
+        "rowSummary": "{ready} rows ready · {warn} with warnings · {invalid} invalid",
+        "importN": "Import {count} expenses",
+        "importing": "Importing {count} expenses…",
+        "progress": "{pct}%",
+        "done": "{count} expenses imported successfully.",
+        "failures": "Some rows could not be imported",
+        "exportEmpty": "No recurring or planned expenses this month to export.",
+        "colName": "Expense",
+        "colCategory": "Category",
+        "colAmount": "Amount",
+        "colIssues": "Issues",
+        "map": {
+          "pick": "Choose column",
+          "none": "None",
+          "name": "Which column is the expense name?",
+          "category": "Which column is the category?",
+          "amount": "Which column is the amount?",
+          "dueDate": "Which column is the due day (or “Every paycheck”)?",
+          "paycheck": "Which column is the paycheck period (1 or 2)?",
+          "status": "Which column is status? (optional)"
+        },
+        "warnings": {
+          "paid_default_account": "Paid status used your default account"
+        },
+        "errors": {
+          "missing_name": "Missing name",
+          "invalid_amount": "Invalid amount",
+          "category_not_found": "Category not found",
+          "missing_account": "No payment account available",
+          "no_subcategory_for_category": "Add a subcategory under this category first",
+          "invalid_row": "Invalid row",
+          "unauthorized": "You must be signed in",
+          "family_not_configured": "Family workspace is not set up",
+          "unsupported_format": "Unsupported file format"
+        }
       }
     },
     "incomes": {
@@ -519,6 +712,7 @@
         "date": "Date",
         "notes": "Notes (optional)"
       },
+      "contributionsTitle": "Recorded contributions",
       "ai": {
         "analyze": "AI analysis",
         "title": "AI analysis",
@@ -562,6 +756,7 @@
         "isExtra": "Extra payment?",
         "notes": "Notes"
       },
+      "paymentsTitle": "Recorded payments",
       "ai": {
         "plan": "AI plan",
         "title": "AI payoff plan",
@@ -648,6 +843,9 @@
         "save": "Save",
         "cancel": "Cancel",
         "deleteConfirm": "Delete this account?",
+        "softDeleteTitle": "Cannot delete — this account has {count} linked transactions.",
+        "softDeleteHint": "Deactivate it instead.",
+        "deactivateAction": "Deactivate",
         "cannotDelete": "Cannot delete: this account has linked transactions.",
         "txCount": "{count, plural, one {# transaction} other {# transactions}}",
         "types": {
@@ -713,7 +911,36 @@
         "untitled": "Untitled",
         "searchPlaceholder": "Search history…",
         "delete": "Delete",
-        "deleteConfirm": "Delete this conversation?"
+        "deleteConfirm": "Delete this conversation?",
+        "conversationsTitle": "Conversations",
+        "newConversationWide": "New conversation",
+        "searchConversations": "Search conversations…",
+        "groupToday": "Today",
+        "groupYesterday": "Yesterday",
+        "groupThisWeek": "This week",
+        "groupThisMonth": "This month",
+        "groupOlder": "Older",
+        "messagesCount": "{count, plural, one {# message} other {# messages}}",
+        "openInChat": "Open in chat",
+        "rename": "Rename",
+        "deleteConversation": "Delete conversation",
+        "clearHistory": "Clear history",
+        "deleteConversationWarn": "Delete this conversation?",
+        "deleteConversationDesc": "All messages will be removed. This cannot be undone.",
+        "clearHistoryWarn": "Clear all history?",
+        "clearHistoryDesc": "All AI conversations will be deleted. This cannot be undone.",
+        "clearAllAction": "Clear all",
+        "emptyPreviewTitle": "Select a conversation",
+        "emptyPreviewSubtitle": "Or start a new one to chat with your financial advisor.",
+        "emptyPreviewCta": "New conversation",
+        "previewOpenChat": "Open in chat →",
+        "previewContinue": "Continue this conversation →",
+        "noSearchResults": "No conversations found",
+        "noSearchResultsFor": "No conversations found for \"{query}\"",
+        "emptyStateTitle": "No conversations yet",
+        "emptyStateSubtitle": "Ask your first question to the financial advisor.",
+        "emptyStateCta": "Get started",
+        "conversationMenu": "Conversation menu"
       }
     },
     "placeholders": {

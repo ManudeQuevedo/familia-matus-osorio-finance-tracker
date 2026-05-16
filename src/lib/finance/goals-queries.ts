@@ -9,6 +9,15 @@ import { errorMessageFromUnknown } from "@/lib/supabase/error-message";
 
 export type GoalStatus = "active" | "completed" | "paused";
 
+export type GoalContributionListItem = {
+  id: string;
+  goal_id: string;
+  amount: number;
+  date: string;
+  notes: string | null;
+  creatorInitial: string;
+};
+
 export type GoalListItem = {
   id: string;
   title: string;
@@ -33,6 +42,7 @@ export type GoalListItem = {
 export type GoalsSnapshot = {
   locale: AppLocale;
   goals: GoalListItem[];
+  contributions: GoalContributionListItem[];
   household: {
     monthlyIncome: number;
     monthlyExpenses: number;
@@ -69,7 +79,8 @@ export async function fetchGoalsSnapshot(
     const lastDay = new Date(year, month, 0).getDate();
     const monthEnd = `${year}-${pad(month)}-${pad(lastDay)}`;
 
-    const [goalsRes, incomesRes, variableRes, recordsRes] = await Promise.all([
+    const [goalsRes, incomesRes, variableRes, recordsRes, contribRes] =
+      await Promise.all([
       supabase
         .from("goals")
         .select(
@@ -95,12 +106,19 @@ export async function fetchGoalsSnapshot(
         .eq("family_id", familyId)
         .eq("period_year", year)
         .eq("period_month", month),
+      supabase
+        .from("goal_contributions")
+        .select("id, goal_id, amount, date, notes, user_id")
+        .eq("family_id", familyId)
+        .order("date", { ascending: false })
+        .limit(200),
     ]);
 
     if (goalsRes.error) throw goalsRes.error;
     if (incomesRes.error) throw incomesRes.error;
     if (variableRes.error) throw variableRes.error;
     if (recordsRes.error) throw recordsRes.error;
+    if (contribRes.error) throw contribRes.error;
 
     const monthlyIncome = (incomesRes.data ?? []).reduce(
       (s, r) => s + num(r.amount_mxn),
@@ -147,10 +165,25 @@ export async function fetchGoalsSnapshot(
       };
     });
 
+    const contributions: GoalContributionListItem[] = (
+      contribRes.data ?? []
+    ).map((c) => ({
+      id: c.id as string,
+      goal_id: c.goal_id as string,
+      amount: num(c.amount),
+      date: c.date as string,
+      notes: (c.notes as string | null) ?? null,
+      creatorInitial: householdCreatorInitial(
+        c.user_id as string,
+        emailByUserId,
+      ),
+    }));
+
     return {
       data: {
         locale,
         goals,
+        contributions,
         household: {
           monthlyIncome,
           monthlyExpenses,

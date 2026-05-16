@@ -7,6 +7,7 @@ import {
   estimatePayoffMonths,
 } from "@/lib/finance/debt-calculations";
 import { computeGoalMetrics } from "@/lib/finance/goal-calculations";
+import type { ExpenseFrequency } from "@/lib/finance/dashboard-queries";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getFamilyIdForUser } from "@/lib/supabase/family-core";
 
@@ -103,6 +104,94 @@ function dueDateForMonth(
     : `${year}-${pad(month)}-22`;
 }
 
+type SupabaseServer = Awaited<ReturnType<typeof createSupabaseServerClient>>;
+
+async function insertSingleRecurringTemplate(
+  supabase: SupabaseServer,
+  args: {
+    userId: string;
+    familyId: string;
+    name: string;
+    subcategoryId: string;
+    accountId: string;
+    amount: number;
+    paycheckPeriod: 1 | 2;
+    dueDay: number | null;
+    isActive: boolean;
+    notes: string | null;
+    year: number;
+    month: number;
+    frequency: ExpenseFrequency;
+    templateKind: "recurring" | "planned";
+    /** For sheet import: seed the current month record as paid or pending. */
+    expenseRecordStatus?: "paid" | "pending";
+    expensePaidDate?: string | null;
+  },
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { data: recurring, error: recErr } = await supabase
+    .from("recurring_expenses")
+    .insert({
+      user_id: args.userId,
+      family_id: args.familyId,
+      subcategory_id: args.subcategoryId,
+      account_id: args.accountId,
+      name: args.name.trim(),
+      amount: args.amount,
+      paycheck_period: args.paycheckPeriod,
+      due_day: args.dueDay,
+      is_active: args.isActive,
+      notes: args.notes,
+      frequency: args.frequency,
+      template_kind: args.templateKind,
+    })
+    .select("id")
+    .single();
+
+  if (recErr || !recurring) {
+    return { ok: false as const, error: recErr?.message ?? "insert_failed" };
+  }
+
+  const dueDate = dueDateForMonth(
+    args.year,
+    args.month,
+    args.dueDay,
+    args.paycheckPeriod,
+  );
+
+  const expense_type =
+    args.templateKind === "planned" ? "planned" : "recurring";
+
+  const recordStatus = args.expenseRecordStatus ?? "pending";
+  const paidDate =
+    recordStatus === "paid"
+      ? (args.expensePaidDate ?? todayIsoDate())
+      : null;
+
+  const { error: recordErr } = await supabase.from("expense_records").insert({
+    user_id: args.userId,
+    family_id: args.familyId,
+    recurring_expense_id: recurring.id,
+    subcategory_id: args.subcategoryId,
+    account_id: args.accountId,
+    name: args.name.trim(),
+    amount: args.amount,
+    period_year: args.year,
+    period_month: args.month,
+    paycheck_period: args.paycheckPeriod,
+    due_date: dueDate,
+    status: recordStatus,
+    paid_date: paidDate,
+    is_recurring: args.templateKind === "recurring",
+    notes: args.notes,
+    expense_type,
+  });
+
+  if (recordErr) {
+    return { ok: false as const, error: recordErr.message };
+  }
+  return { ok: true as const };
+}
+
 export async function createRecurringExpense(input: {
   locale: string;
   name: string;
@@ -115,6 +204,9 @@ export async function createRecurringExpense(input: {
   notes?: string;
   year: number;
   month: number;
+  frequency?: ExpenseFrequency;
+  templateKind?: "recurring" | "planned";
+  paycheckBoth?: boolean;
 }) {
   const supabase = await createSupabaseServerClient();
   const {
@@ -132,57 +224,118 @@ export async function createRecurringExpense(input: {
     return { ok: false as const, error: "family_not_configured" };
   }
 
-  const { data: recurring, error: recErr } = await supabase
-    .from("recurring_expenses")
-    .insert({
-      user_id: user.id,
-      family_id: familyId,
-      subcategory_id: input.subcategoryId,
-      account_id: input.accountId,
-      name: input.name.trim(),
+  const frequency = input.frequency ?? "monthly";
+  const templateKind = input.templateKind ?? "recurring";
+  const notes = input.notes?.trim() || null;
+
+  const dbPeriods: Array<1 | 2> = input.paycheckBoth
+    ? [2, 1]
+    : [input.paycheckPeriod];
+
+  for (const paycheckPeriod of dbPeriods) {
+    const res = await insertSingleRecurringTemplate(supabase, {
+      userId: user.id,
+      familyId,
+      name: input.name,
+      subcategoryId: input.subcategoryId,
+      accountId: input.accountId,
       amount: input.amount,
-      paycheck_period: input.paycheckPeriod,
-      due_day: input.dueDay,
-      is_active: input.isActive,
-      notes: input.notes?.trim() || null,
-    })
-    .select("id")
-    .single();
-
-  if (recErr || !recurring) {
-    return { ok: false as const, error: recErr?.message ?? "insert_failed" };
-  }
-
-  const dueDate = dueDateForMonth(
-    input.year,
-    input.month,
-    input.dueDay,
-    input.paycheckPeriod,
-  );
-
-  const { error: recordErr } = await supabase.from("expense_records").insert({
-    user_id: user.id,
-    family_id: familyId,
-    recurring_expense_id: recurring.id,
-    subcategory_id: input.subcategoryId,
-    account_id: input.accountId,
-    name: input.name.trim(),
-    amount: input.amount,
-    period_year: input.year,
-    period_month: input.month,
-    paycheck_period: input.paycheckPeriod,
-    due_date: dueDate,
-    status: "pending",
-    is_recurring: true,
-    notes: input.notes?.trim() || null,
-  });
-
-  if (recordErr) {
-    return { ok: false as const, error: recordErr.message };
+      paycheckPeriod,
+      dueDay: input.dueDay,
+      isActive: input.isActive,
+      notes,
+      year: input.year,
+      month: input.month,
+      frequency,
+      templateKind,
+    });
+    if (!res.ok) return res;
   }
 
   revalidateFinancePaths(input.locale);
   return { ok: true as const };
+}
+
+export type ImportRecurringExpenseRowInput = {
+  name: string;
+  subcategoryId: string;
+  accountId: string;
+  amount: number;
+  paycheckPeriod: 1 | 2;
+  dueDay: number | null;
+  recordStatus: "paid" | "pending";
+};
+
+/** Import recurring expense templates + current month records from a spreadsheet. */
+export async function importRecurringExpensesFromSheet(input: {
+  locale: string;
+  year: number;
+  month: number;
+  rows: ImportRecurringExpenseRowInput[];
+}): Promise<{
+  imported: number;
+  failures: { name: string; error: string }[];
+  error?: string;
+}> {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { imported: 0, failures: [], error: "unauthorized" };
+  }
+  const familyId = await getFamilyIdForUser(supabase, user.id);
+  if (!familyId) {
+    return { imported: 0, failures: [], error: "family_not_configured" };
+  }
+
+  let imported = 0;
+  const failures: { name: string; error: string }[] = [];
+
+  for (const row of input.rows) {
+    if (
+      !row.name?.trim() ||
+      !Number.isFinite(row.amount) ||
+      row.amount < 0 ||
+      !row.subcategoryId ||
+      !row.accountId
+    ) {
+      failures.push({
+        name: row.name?.trim() || "—",
+        error: "invalid_row",
+      });
+      continue;
+    }
+    const res = await insertSingleRecurringTemplate(supabase, {
+      userId: user.id,
+      familyId,
+      name: row.name,
+      subcategoryId: row.subcategoryId,
+      accountId: row.accountId,
+      amount: row.amount,
+      paycheckPeriod: row.paycheckPeriod,
+      dueDay: row.dueDay,
+      isActive: true,
+      notes: null,
+      year: input.year,
+      month: input.month,
+      frequency: "monthly",
+      templateKind: "recurring",
+      expenseRecordStatus: row.recordStatus,
+      expensePaidDate: row.recordStatus === "paid" ? todayIsoDate() : null,
+    });
+    if (!res.ok) {
+      failures.push({ name: row.name, error: res.error });
+    } else {
+      imported++;
+    }
+  }
+
+  if (imported > 0) {
+    revalidateFinancePaths(input.locale);
+  }
+
+  return { imported, failures };
 }
 
 export async function createSubcategory(input: {
@@ -227,6 +380,10 @@ export async function createQuickVariableExpense(input: {
   subcategoryId: string | null;
   description: string;
   date: string;
+  expense_type?: "unplanned" | "unexpected";
+  type_id?: string | null;
+  permanent_solution?: boolean;
+  permanent_solution_note?: string | null;
 }) {
   const supabase = await createSupabaseServerClient();
   const {
@@ -248,12 +405,57 @@ export async function createQuickVariableExpense(input: {
     amount: input.amount,
     description: desc,
     date: input.date,
+    expense_type: input.expense_type ?? "unplanned",
+    type_id: input.type_id ?? null,
+    permanent_solution: input.permanent_solution ?? false,
+    permanent_solution_note: input.permanent_solution_note?.trim() || null,
   });
   if (error) {
     return { ok: false as const, error: error.message };
   }
   revalidateFinancePaths(input.locale);
   return { ok: true as const };
+}
+
+export async function createCustomExpenseClassification(input: {
+  locale: string;
+  kind: "unplanned" | "unexpected";
+  name: string;
+}) {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false as const, error: "unauthorized" };
+  }
+  const name = input.name.trim();
+  if (!name) {
+    return { ok: false as const, error: "invalid_name" };
+  }
+  const familyId = await getFamilyIdForUser(supabase, user.id);
+  if (!familyId) {
+    return { ok: false as const, error: "family_not_configured" };
+  }
+  const table =
+    input.kind === "unplanned"
+      ? "unplanned_expense_types"
+      : "unexpected_expense_types";
+  const { data, error } = await supabase
+    .from(table)
+    .insert({
+      family_id: familyId,
+      name,
+      icon: null,
+      is_system: false,
+    })
+    .select("id")
+    .single();
+  if (error || !data) {
+    return { ok: false as const, error: error?.message ?? "insert_failed" };
+  }
+  revalidateFinancePaths(input.locale);
+  return { ok: true as const, id: data.id as string };
 }
 
 export async function deleteVariableExpense(id: string, locale: string) {
@@ -277,6 +479,134 @@ export async function deleteVariableExpense(id: string, locale: string) {
     return { ok: false as const, error: error.message };
   }
   revalidateFinancePaths(locale);
+  return { ok: true as const };
+}
+
+/** Deletes template plus all linked expense_records for this recurring/planned row. */
+export async function deleteRecurringExpenseTemplate(input: {
+  locale: string;
+  recurringExpenseId: string;
+}) {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false as const, error: "unauthorized" };
+  }
+  const familyId = await getFamilyIdForUser(supabase, user.id);
+  if (!familyId) {
+    return { ok: false as const, error: "family_not_configured" };
+  }
+
+  const { data: row } = await supabase
+    .from("recurring_expenses")
+    .select("id")
+    .eq("id", input.recurringExpenseId)
+    .eq("family_id", familyId)
+    .maybeSingle();
+
+  if (!row) {
+    return { ok: false as const, error: "not_found" };
+  }
+
+  const { error: delRecordsErr } = await supabase
+    .from("expense_records")
+    .delete()
+    .eq("recurring_expense_id", input.recurringExpenseId)
+    .eq("family_id", familyId);
+
+  if (delRecordsErr) {
+    return { ok: false as const, error: delRecordsErr.message };
+  }
+
+  const { error } = await supabase
+    .from("recurring_expenses")
+    .delete()
+    .eq("id", input.recurringExpenseId)
+    .eq("family_id", familyId);
+
+  if (error) {
+    return { ok: false as const, error: error.message };
+  }
+
+  revalidateFinancePaths(input.locale);
+  return { ok: true as const };
+}
+
+/** Removes a single expense record without deleting its recurring template. */
+export async function deleteExpenseRecord(input: {
+  locale: string;
+  recordId: string;
+}) {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false as const, error: "unauthorized" };
+  }
+  const familyId = await getFamilyIdForUser(supabase, user.id);
+  if (!familyId) {
+    return { ok: false as const, error: "family_not_configured" };
+  }
+
+  const { error } = await supabase
+    .from("expense_records")
+    .delete()
+    .eq("id", input.recordId)
+    .eq("family_id", familyId);
+
+  if (error) {
+    return { ok: false as const, error: error.message };
+  }
+
+  revalidateFinancePaths(input.locale);
+  return { ok: true as const };
+}
+
+export async function deleteCustomExpenseType(input: {
+  locale: string;
+  kind: "unplanned" | "unexpected";
+  id: string;
+}) {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false as const, error: "unauthorized" };
+  }
+  const familyId = await getFamilyIdForUser(supabase, user.id);
+  if (!familyId) {
+    return { ok: false as const, error: "family_not_configured" };
+  }
+
+  const table =
+    input.kind === "unplanned"
+      ? "unplanned_expense_types"
+      : "unexpected_expense_types";
+  const expenseType = input.kind === "unplanned" ? "unplanned" : "unexpected";
+
+  await supabase
+    .from("variable_expenses")
+    .update({ type_id: null })
+    .eq("family_id", familyId)
+    .eq("expense_type", expenseType)
+    .eq("type_id", input.id);
+
+  const { error } = await supabase
+    .from(table)
+    .delete()
+    .eq("id", input.id)
+    .eq("family_id", familyId)
+    .eq("is_system", false);
+
+  if (error) {
+    return { ok: false as const, error: error.message };
+  }
+
+  revalidateFinancePaths(input.locale);
   return { ok: true as const };
 }
 
@@ -641,6 +971,245 @@ export async function registerDebtPayment(input: {
   if (updErr) return { ok: false as const, error: updErr.message };
   revalidateFinancePaths(input.locale);
   return { ok: true as const, paidOff: balanceAfter <= 0 };
+}
+
+export async function deleteIncome(input: {
+  locale: string;
+  incomeId: string;
+}) {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false as const, error: "unauthorized" };
+  }
+  const familyId = await getFamilyIdForUser(supabase, user.id);
+  if (!familyId) {
+    return { ok: false as const, error: "family_not_configured" };
+  }
+
+  const { error } = await supabase
+    .from("incomes")
+    .delete()
+    .eq("id", input.incomeId)
+    .eq("family_id", familyId);
+
+  if (error) {
+    return { ok: false as const, error: error.message };
+  }
+  revalidateFinancePaths(input.locale);
+  return { ok: true as const };
+}
+
+export async function deleteGoal(input: { locale: string; goalId: string }) {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false as const, error: "unauthorized" };
+  }
+  const familyId = await getFamilyIdForUser(supabase, user.id);
+  if (!familyId) {
+    return { ok: false as const, error: "family_not_configured" };
+  }
+
+  const { error } = await supabase
+    .from("goals")
+    .delete()
+    .eq("id", input.goalId)
+    .eq("family_id", familyId);
+
+  if (error) {
+    return { ok: false as const, error: error.message };
+  }
+  revalidateFinancePaths(input.locale);
+  return { ok: true as const };
+}
+
+export async function deleteGoalContribution(input: {
+  locale: string;
+  contributionId: string;
+}) {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false as const, error: "unauthorized" };
+  }
+  const familyId = await getFamilyIdForUser(supabase, user.id);
+  if (!familyId) {
+    return { ok: false as const, error: "family_not_configured" };
+  }
+
+  const { data: contrib, error: cErr } = await supabase
+    .from("goal_contributions")
+    .select("id, goal_id, amount")
+    .eq("id", input.contributionId)
+    .eq("family_id", familyId)
+    .maybeSingle();
+
+  if (cErr || !contrib) {
+    return { ok: false as const, error: cErr?.message ?? "not_found" };
+  }
+
+  const { data: goal, error: gErr } = await supabase
+    .from("goals")
+    .select("id, current_amount, target_amount, target_date, status")
+    .eq("id", contrib.goal_id as string)
+    .eq("family_id", familyId)
+    .maybeSingle();
+
+  if (gErr || !goal) {
+    return { ok: false as const, error: gErr?.message ?? "goal_not_found" };
+  }
+
+  const amt = Number(contrib.amount);
+  const target = Number(goal.target_amount);
+  const newCurrent = Math.max(0, Number(goal.current_amount) - amt);
+  const metrics = computeGoalMetrics(
+    target,
+    newCurrent,
+    goal.target_date as string,
+  );
+  const status =
+    newCurrent >= target && target > 0
+      ? "completed"
+      : goal.status === "paused"
+        ? "paused"
+        : "active";
+
+  const { error: dErr } = await supabase
+    .from("goal_contributions")
+    .delete()
+    .eq("id", input.contributionId)
+    .eq("family_id", familyId);
+
+  if (dErr) {
+    return { ok: false as const, error: dErr.message };
+  }
+
+  const { error: uErr } = await supabase
+    .from("goals")
+    .update({
+      current_amount: newCurrent,
+      monthly_required: metrics.monthlyRequired,
+      status,
+    })
+    .eq("id", contrib.goal_id as string);
+
+  if (uErr) {
+    return { ok: false as const, error: uErr.message };
+  }
+
+  revalidateFinancePaths(input.locale);
+  return { ok: true as const };
+}
+
+export async function deleteDebt(input: { locale: string; debtId: string }) {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false as const, error: "unauthorized" };
+  }
+  const familyId = await getFamilyIdForUser(supabase, user.id);
+  if (!familyId) {
+    return { ok: false as const, error: "family_not_configured" };
+  }
+
+  const { error } = await supabase
+    .from("debts")
+    .delete()
+    .eq("id", input.debtId)
+    .eq("family_id", familyId);
+
+  if (error) {
+    return { ok: false as const, error: error.message };
+  }
+  revalidateFinancePaths(input.locale);
+  return { ok: true as const };
+}
+
+export async function deleteDebtPayment(input: {
+  locale: string;
+  paymentId: string;
+}) {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false as const, error: "unauthorized" };
+  }
+  const familyId = await getFamilyIdForUser(supabase, user.id);
+  if (!familyId) {
+    return { ok: false as const, error: "family_not_configured" };
+  }
+
+  const { data: pay, error: pErr } = await supabase
+    .from("debt_payments")
+    .select("id, debt_id, amount_paid, payment_date")
+    .eq("id", input.paymentId)
+    .eq("family_id", familyId)
+    .maybeSingle();
+
+  if (pErr || !pay) {
+    return { ok: false as const, error: pErr?.message ?? "not_found" };
+  }
+
+  const { data: debt, error: dErr } = await supabase
+    .from("debts")
+    .select("id, current_balance, monthly_payment, interest_rate")
+    .eq("id", pay.debt_id as string)
+    .eq("family_id", familyId)
+    .maybeSingle();
+
+  if (dErr || !debt) {
+    return { ok: false as const, error: dErr?.message ?? "debt_not_found" };
+  }
+
+  const newBalance =
+    Number(debt.current_balance) + Number(pay.amount_paid);
+
+  const months = estimatePayoffMonths(
+    newBalance,
+    Number(debt.monthly_payment),
+    debt.interest_rate != null ? Number(debt.interest_rate) : null,
+  );
+  const estimatedPayoff =
+    newBalance > 0 && months < 999
+      ? addMonthsToDate(pay.payment_date as string, months)
+      : null;
+
+  const { error: delErr } = await supabase
+    .from("debt_payments")
+    .delete()
+    .eq("id", input.paymentId)
+    .eq("family_id", familyId);
+
+  if (delErr) {
+    return { ok: false as const, error: delErr.message };
+  }
+
+  const { error: updErr } = await supabase
+    .from("debts")
+    .update({
+      current_balance: newBalance,
+      estimated_payoff_date: estimatedPayoff,
+      status: newBalance <= 0 ? "paid_off" : "active",
+    })
+    .eq("id", pay.debt_id as string);
+
+  if (updErr) {
+    return { ok: false as const, error: updErr.message };
+  }
+
+  revalidateFinancePaths(input.locale);
+  return { ok: true as const };
 }
 
 export async function activateDebtPlan(input: {

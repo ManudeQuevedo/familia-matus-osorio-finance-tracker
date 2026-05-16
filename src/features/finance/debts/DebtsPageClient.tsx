@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { CreditCard, Plus, Sparkles } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,15 +25,23 @@ import {
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FinanceContentHeaderActions } from "@/components/finance/FinanceContentHeaderActions";
+import { FinanceHeaderSearchTrigger } from "@/components/finance/finance-header-search-trigger";
 import { CreatorBadge } from "@/components/finance/CreatorBadge";
 import { FinancePageShell } from "@/components/finance/FinancePageShell";
+import { RowDeleteButton } from "@/components/finance/row-delete-button";
 import {
   activateDebtPlan,
   createDebt,
+  deleteDebt,
+  deleteDebtPayment,
   registerDebtPayment,
 } from "@/lib/finance/actions";
-import { notify } from "@/lib/toast";
-import type { DebtsSnapshot, DebtListItem } from "@/lib/finance/debts-queries";
+import { notify, toastConfirmDestructive } from "@/lib/toast";
+import type {
+  DebtPaymentListItem,
+  DebtsSnapshot,
+  DebtListItem,
+} from "@/lib/finance/debts-queries";
 import { formatMxn, formatShortDate } from "@/lib/finance/format";
 import { useEscape } from "@/lib/hooks/use-escape";
 import { cn } from "@/lib/utils";
@@ -171,6 +179,24 @@ export function DebtsPageClient({
     aiText ||
     (typeof displayPlan?.analysis === "string" ? displayPlan.analysis : "");
 
+  const paymentsByDebt = useMemo(() => {
+    const map = new Map<string, DebtPaymentListItem[]>();
+    if (!snapshot) return map;
+    for (const p of snapshot.payments) {
+      const list = map.get(p.debt_id) ?? [];
+      list.push(p);
+      map.set(p.debt_id, list);
+    }
+    for (const list of map.values()) {
+      list.sort(
+        (a, b) =>
+          new Date(b.payment_date).getTime() -
+          new Date(a.payment_date).getTime(),
+      );
+    }
+    return map;
+  }, [snapshot]);
+
   const handleCreate = async () => {
     setSaving(true);
     const res = await createDebt({
@@ -225,6 +251,48 @@ export function DebtsPageClient({
     }
   };
 
+  const confirmDeleteDebt = (debt: DebtListItem) => {
+    toastConfirmDestructive({
+      title: tc("deleteNamed", { name: debt.name }),
+      description: tc("deleteCannotUndo"),
+      duration: 5000,
+      confirmLabel: tc("delete"),
+      cancelLabel: tc("cancel"),
+      onConfirm: async () => {
+        const res = await deleteDebt({ locale, debtId: debt.id });
+        if (res.ok) {
+          notify.debts.deleteSuccess(debt.name);
+          await queryClient.invalidateQueries({ queryKey: ["finance-debts"] });
+        } else {
+          notify.debts.deleteError();
+        }
+      },
+    });
+  };
+
+  const confirmDeletePayment = (debtName: string, row: DebtPaymentListItem) => {
+    const label = `${formatMxn(intlLocale, row.amount_paid)} · ${formatShortDate(intlLocale, row.payment_date)}`;
+    toastConfirmDestructive({
+      title: tc("deleteNamed", { name: label }),
+      description: tc("deleteCannotUndo"),
+      duration: 5000,
+      confirmLabel: tc("delete"),
+      cancelLabel: tc("cancel"),
+      onConfirm: async () => {
+        const res = await deleteDebtPayment({
+          locale,
+          paymentId: row.id,
+        });
+        if (res.ok) {
+          notify.debts.paymentDeleteSuccess(debtName);
+          await queryClient.invalidateQueries({ queryKey: ["finance-debts"] });
+        } else {
+          notify.debts.paymentDeleteError();
+        }
+      },
+    });
+  };
+
   const togglePlanActive = async () => {
     setSaving(true);
     await activateDebtPlan({
@@ -255,7 +323,7 @@ export function DebtsPageClient({
         <motion.header
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="flex items-start justify-between gap-4">
+          className="relative flex items-start justify-between gap-4">
           <motion.div
             initial={{ opacity: 0, x: -8 }}
             animate={{ opacity: 1, x: 0 }}>
@@ -264,6 +332,7 @@ export function DebtsPageClient({
             </h1>
             <p className="mt-1 text-sm text-text-muted">{t("subtitle")}</p>
           </motion.div>
+          <FinanceHeaderSearchTrigger />
           <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
             <Button
               variant="outline"
@@ -338,85 +407,122 @@ export function DebtsPageClient({
         ) : null}
 
         <div className="grid gap-4 md:grid-cols-2">
-          {snapshot?.debts.map((debt, i) => (
-            <motion.div
-              key={debt.id}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}>
-              <Card>
-                <CardHeader className="flex flex-row items-start gap-3 pb-2">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50 dark:bg-red-950/40">
-                    <CreditCard className="h-5 w-5 text-red-600" />
-                  </div>
-                  <motion.div
-                    className="min-w-0 flex-1"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.1 }}>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <CreatorBadge letter={debt.creatorInitial} />
-                      <CardTitle className="text-base">{debt.name}</CardTitle>
-                      <Badge
-                        variant={
-                          debt.status === "paid_off" ? "default" : "outline"
-                        }>
-                        {t(`status.${debt.status}`)}
-                      </Badge>
+          {snapshot?.debts.map((debt, i) => {
+            const payList = paymentsByDebt.get(debt.id) ?? [];
+            return (
+              <motion.div
+                key={debt.id}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 }}>
+                <Card className="group overflow-hidden">
+                  <CardHeader className="flex flex-row items-start gap-3 pb-2">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50 dark:bg-red-950/40">
+                      <CreditCard className="h-5 w-5 text-red-600" />
                     </div>
-                    <p className="mt-1 text-sm text-text-muted">
-                      {formatMxn(intlLocale, debt.current_balance)} /{" "}
-                      {formatMxn(intlLocale, debt.total_amount)}
-                    </p>
-                  </motion.div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="h-2 overflow-hidden rounded-full bg-bg-card-hover">
                     <motion.div
-                      className="h-full rounded-full bg-red-500"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${debt.payoffProgressPercent}%` }}
-                      transition={{ duration: 0.7 }}
+                      className="min-w-0 flex-1"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.1 }}>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <CreatorBadge letter={debt.creatorInitial} />
+                        <CardTitle className="text-base">{debt.name}</CardTitle>
+                        <Badge
+                          variant={
+                            debt.status === "paid_off" ? "default" : "outline"
+                          }>
+                          {t(`status.${debt.status}`)}
+                        </Badge>
+                      </div>
+                      <p className="mt-1 text-sm text-text-muted">
+                        {formatMxn(intlLocale, debt.current_balance)} /{" "}
+                        {formatMxn(intlLocale, debt.total_amount)}
+                      </p>
+                    </motion.div>
+                    <RowDeleteButton
+                      ariaLabel={tc("delete")}
+                      onClick={() => confirmDeleteDebt(debt)}
                     />
-                  </div>
-                  <div className="grid gap-1 text-xs text-text-secondary sm:grid-cols-2 dark:text-text-muted">
-                    <p>
-                      {t("monthlyPayment")}:{" "}
-                      {formatMxn(intlLocale, debt.monthly_payment)}
-                    </p>
-                    <p>
-                      {t("dueDay")}: {debt.due_day}
-                    </p>
-                    {debt.interest_rate != null ? (
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="h-2 overflow-hidden rounded-full bg-bg-card-hover">
+                      <motion.div
+                        className="h-full rounded-full bg-red-500"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${debt.payoffProgressPercent}%` }}
+                        transition={{ duration: 0.7 }}
+                      />
+                    </div>
+                    <div className="grid gap-1 text-xs text-text-secondary sm:grid-cols-2 dark:text-text-muted">
                       <p>
-                        {t("interestRate")}: {debt.interest_rate}%
+                        {t("monthlyPayment")}:{" "}
+                        {formatMxn(intlLocale, debt.monthly_payment)}
                       </p>
-                    ) : null}
-                    {debt.estimated_payoff_date ? (
                       <p>
-                        {t("payoffDate")}:{" "}
-                        {formatShortDate(
-                          intlLocale,
-                          debt.estimated_payoff_date,
-                        )}
+                        {t("dueDay")}: {debt.due_day}
                       </p>
+                      {debt.interest_rate != null ? (
+                        <p>
+                          {t("interestRate")}: {debt.interest_rate}%
+                        </p>
+                      ) : null}
+                      {debt.estimated_payoff_date ? (
+                        <p>
+                          {t("payoffDate")}:{" "}
+                          {formatShortDate(
+                            intlLocale,
+                            debt.estimated_payoff_date,
+                          )}
+                        </p>
+                      ) : null}
+                    </div>
+                    {debt.status === "active" ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setPayDebt(debt);
+                          setPayAmount(String(debt.monthly_payment));
+                        }}>
+                        {t("registerPayment")}
+                      </Button>
                     ) : null}
-                  </div>
-                  {debt.status === "active" ? (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setPayDebt(debt);
-                        setPayAmount(String(debt.monthly_payment));
-                      }}>
-                      {t("registerPayment")}
-                    </Button>
-                  ) : null}
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
+                    {payList.length > 0 ? (
+                      <div className="border-t border-border-subtle pt-3">
+                        <p className="mb-2 text-xs font-medium text-text-muted">
+                          {t("paymentsTitle")}
+                        </p>
+                        <ul className="space-y-1.5">
+                          {payList.map((p) => (
+                            <li
+                              key={p.id}
+                              className="group flex items-center justify-between gap-2 rounded-lg border border-border-subtle bg-bg-card-nested/80 px-2 py-1.5 text-xs dark:border-border-default">
+                              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                                <CreatorBadge letter={p.creatorInitial} />
+                                <span className="text-text-muted">
+                                  {formatShortDate(intlLocale, p.payment_date)}
+                                </span>
+                                <span className="font-semibold tabular-nums">
+                                  {formatMxn(intlLocale, p.amount_paid)}
+                                </span>
+                              </div>
+                              <RowDeleteButton
+                                ariaLabel={tc("delete")}
+                                onClick={() =>
+                                  confirmDeletePayment(debt.name, p)
+                                }
+                              />
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
+                  </CardContent>
+                </Card>
+              </motion.div>
+            );
+          })}
         </div>
 
         <Dialog open={newOpen} onOpenChange={setNewOpen}>

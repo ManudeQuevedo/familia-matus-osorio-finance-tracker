@@ -18,8 +18,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { createIncome } from "@/lib/finance/actions";
-import { notify } from "@/lib/toast";
+import { FinanceContentHeaderActions } from "@/components/finance/FinanceContentHeaderActions";
+import { FinanceHeaderSearchTrigger } from "@/components/finance/finance-header-search-trigger";
+import { FinancePageShell } from "@/components/finance/FinancePageShell";
+import { RowDeleteButton } from "@/components/finance/row-delete-button";
+import { createIncome, deleteIncome } from "@/lib/finance/actions";
+import { notify, toastConfirmDestructive } from "@/lib/toast";
 import {
   formatMxn,
   formatMonthYear,
@@ -27,8 +31,6 @@ import {
   formatUsd,
 } from "@/lib/finance/format";
 import type { HouseholdPerson } from "@/lib/finance/household";
-import { FinanceContentHeaderActions } from "@/components/finance/FinanceContentHeaderActions";
-import { FinancePageShell } from "@/components/finance/FinancePageShell";
 import type { IncomesSnapshot } from "@/lib/finance/incomes-queries";
 
 export function IncomesPageClient({
@@ -195,6 +197,35 @@ export function IncomesPageClient({
     }
   };
 
+  const incomeRowLabel = (row: IncomesSnapshot["incomes"][number]) => {
+    const bits = [
+      typeLabel(row.type),
+      formatShortDate(intlLocale, row.received_date),
+    ];
+    if (row.notes?.trim()) bits.push(row.notes.trim());
+    return bits.join(" · ");
+  };
+
+  const confirmDeleteIncome = (row: IncomesSnapshot["incomes"][number]) => {
+    const label = incomeRowLabel(row);
+    toastConfirmDestructive({
+      title: tc("deleteNamed", { name: label }),
+      description: tc("deleteCannotUndo"),
+      duration: 5000,
+      confirmLabel: tc("delete"),
+      cancelLabel: tc("cancel"),
+      onConfirm: async () => {
+        const res = await deleteIncome({ locale, incomeId: row.id });
+        if (res.ok) {
+          notify.income.deleteSuccess(label);
+          invalidate();
+        } else {
+          notify.income.deleteError();
+        }
+      },
+    });
+  };
+
   const monthOptions = Array.from({ length: 12 }, (_, i) => i + 1);
   const yearOptions = Array.from({ length: 5 }, (_, i) => initialYear - 2 + i);
 
@@ -236,13 +267,14 @@ export function IncomesPageClient({
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         className="space-y-8">
-        <header className="flex flex-wrap items-start justify-between gap-4">
+        <header className="relative flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-semibold">{t("title")}</h1>
             <p className="mt-1 text-sm text-text-muted">
               {formatMonthYear(intlLocale, viewYear, viewMonth)}
             </p>
           </div>
+          <FinanceHeaderSearchTrigger />
           <FinanceContentHeaderActions />
         </header>
 
@@ -371,44 +403,49 @@ export function IncomesPageClient({
 
         <section>
           <h2 className="mb-3 text-lg font-semibold">{t("summary.title")}</h2>
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:items-stretch">
             <motion.div
+              className="md:h-full"
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}>
-              <Card>
-                <CardHeader className="pb-2">
+              <Card className="flex flex-col md:h-full">
+                <CardHeader className="shrink-0 pb-2">
                   <CardTitle className="text-sm text-text-muted">
                     {t("summary.manuel")}
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-xl font-semibold tabular-nums">
-                    {formatMxn(intlLocale, snapshot.manuel.totalMxn)}
-                  </p>
-                  {snapshot.manuel.usdTotal > 0 &&
-                  snapshot.manuel.avgExchangeRate ? (
-                    <p className="mt-1 text-xs text-text-muted">
-                      {t("summary.usdBreakdown", {
-                        usd: formatUsd(intlLocale, snapshot.manuel.usdTotal),
-                        rate: snapshot.manuel.avgExchangeRate.toFixed(2),
-                        mxn: formatMxn(intlLocale, snapshot.manuel.totalMxn),
-                      })}
+                <CardContent className="flex flex-1 flex-col">
+                  <div>
+                    <p className="text-xl font-semibold tabular-nums">
+                      {formatMxn(intlLocale, snapshot.manuel.totalMxn)}
                     </p>
-                  ) : null}
+                    {snapshot.manuel.usdTotal > 0 &&
+                    snapshot.manuel.avgExchangeRate ? (
+                      <p className="mt-1 text-xs text-text-muted">
+                        {t("summary.usdBreakdown", {
+                          usd: formatUsd(intlLocale, snapshot.manuel.usdTotal),
+                          rate: snapshot.manuel.avgExchangeRate.toFixed(2),
+                          mxn: formatMxn(intlLocale, snapshot.manuel.totalMxn),
+                        })}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="hidden min-h-0 flex-1 md:block" aria-hidden />
                 </CardContent>
               </Card>
             </motion.div>
             <motion.div
+              className="md:h-full"
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.06 }}>
-              <Card>
-                <CardHeader className="pb-2">
+              <Card className="flex flex-col md:h-full">
+                <CardHeader className="shrink-0 pb-2">
                   <CardTitle className="text-sm text-text-muted">
                     {t("summary.carolina")}
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex flex-1 flex-col">
                   <p className="text-xl font-semibold tabular-nums">
                     {formatMxn(intlLocale, snapshot.carolina.totalMxn)}
                   </p>
@@ -430,19 +467,21 @@ export function IncomesPageClient({
               </Card>
             </motion.div>
             <motion.div
+              className="md:h-full"
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.12 }}>
-              <Card className="border-accent/30 bg-accent-muted">
-                <CardHeader className="pb-2">
+              <Card className="flex flex-col border-accent/30 bg-accent-muted md:h-full">
+                <CardHeader className="shrink-0 pb-2">
                   <CardTitle className="text-sm text-text-muted">
                     {t("summary.family")}
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex flex-1 flex-col">
                   <p className="text-xl font-semibold tabular-nums text-accent">
                     {formatMxn(intlLocale, snapshot.familyTotalMxn)}
                   </p>
+                  <div className="hidden min-h-0 flex-1 md:block" aria-hidden />
                 </CardContent>
               </Card>
             </motion.div>
@@ -469,7 +508,7 @@ export function IncomesPageClient({
                     {rows.map((row) => (
                       <li
                         key={row.id}
-                        className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border-default bg-bg-card px-4 py-3 dark:border-border-default">
+                        className="group flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border-default bg-bg-card px-4 py-3 dark:border-border-default">
                         <div>
                           <p className="font-medium">{typeLabel(row.type)}</p>
                           <p className="text-xs text-text-muted">
@@ -488,6 +527,10 @@ export function IncomesPageClient({
                           <span className="font-semibold tabular-nums">
                             {formatMxn(intlLocale, row.amount_mxn)}
                           </span>
+                          <RowDeleteButton
+                            ariaLabel={tc("delete")}
+                            onClick={() => confirmDeleteIncome(row)}
+                          />
                         </div>
                       </li>
                     ))}

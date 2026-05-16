@@ -1,9 +1,15 @@
 "use client";
 
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { AnimatePresence, motion } from "framer-motion";
+import {
+  AnimatePresence,
+  motion,
+  useDragControls,
+  type PanInfo,
+} from "framer-motion";
 import { X } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,7 +21,20 @@ import type { SettingsSnapshot } from "@/lib/finance/settings-queries";
 import type { SettingsTab } from "@/contexts/settings-modal-context";
 import { useSettingsModal } from "@/contexts/settings-modal-context";
 import { useEscape } from "@/lib/hooks/use-escape";
+import { triggerHaptic } from "@/lib/haptic";
 import { cn } from "@/lib/utils";
+
+function useMatchMobileModal() {
+  const [matches, setMatches] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const apply = () => setMatches(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+  return matches;
+}
 
 export function SettingsModalHost({
   locale,
@@ -71,8 +90,18 @@ function SettingsModalDialog({
   tabLabel: (id: SettingsTab) => string;
 }) {
   const tModal = useTranslations("Finance.settings");
+  const isMobileLayout = useMatchMobileModal();
+  const dragControls = useDragControls();
 
   useEscape(onClose, true);
+
+  const onDragEnd = (_: unknown, info: PanInfo) => {
+    if (!isMobileLayout) return;
+    if (info.offset.y > 88 || info.velocity.y > 420) {
+      triggerHaptic("light");
+      onClose();
+    }
+  };
 
   return (
     <DialogPrimitive.Root
@@ -85,29 +114,57 @@ function SettingsModalDialog({
         <div className="fixed inset-0 z-100">
           <DialogPrimitive.Overlay
             forceMount
-            className="fixed inset-0 bg-[rgba(0,0,0,0.6)] backdrop-blur-sm"
+            className={cn(
+              "fixed inset-0 bg-[rgba(0,0,0,0.6)] backdrop-blur-sm",
+              "max-md:pointer-events-none max-md:bg-transparent max-md:backdrop-blur-none",
+            )}
           />
           <DialogPrimitive.Content
             forceMount
             asChild
             onCloseAutoFocus={(e) => e.preventDefault()}
-            onEscapeKeyDown={(e) => e.preventDefault()}>
+            onEscapeKeyDown={(e) => e.preventDefault()}
+            onInteractOutside={(e) => {
+              if (typeof window !== "undefined" && window.innerWidth < 768) {
+                e.preventDefault();
+              }
+            }}
+            onPointerDownOutside={(e) => {
+              if (typeof window !== "undefined" && window.innerWidth < 768) {
+                e.preventDefault();
+              }
+            }}>
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
+              drag={isMobileLayout ? "y" : false}
+              dragListener={false}
+              dragControls={dragControls}
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={{ top: 0, bottom: 0.22 }}
+              onDragEnd={onDragEnd}
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{
                 opacity: 0,
-                scale: 0.95,
+                scale: 0.96,
                 transition: { duration: 0.2, ease: "easeOut" },
               }}
               transition={{ duration: 0.25, ease: "easeOut" }}
               className={cn(
-                "fixed left-1/2 top-1/2 z-101 flex max-h-[700px] w-[80vw] max-w-[1000px] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden bg-bg-card shadow-2xl outline-none touch-scroll",
-                "h-dvh max-h-none w-full max-w-none rounded-none",
-                "md:h-[80vh] md:max-h-[700px] md:w-[80vw] md:max-w-[1000px] md:rounded-[16px]",
+                "fixed z-101 flex flex-col overflow-hidden bg-bg-modal shadow-2xl outline-none touch-scroll",
+                "max-md:inset-0 max-md:left-0 max-md:top-0 max-md:h-dvh max-md:w-screen max-md:max-w-none max-md:translate-none max-md:rounded-none",
+                "md:left-1/2 md:top-1/2 md:h-[80vh] md:max-h-[700px] md:w-[80vw] md:max-w-[1000px] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-[16px]",
               )}>
-              <header className="relative flex h-[52px] shrink-0 items-center justify-center border-b border-border-subtle bg-bg-card px-3">
-                <DialogPrimitive.Title className="text-sm font-semibold text-text-primary">
+              <header
+                onPointerDown={(e) => {
+                  if (!isMobileLayout) return;
+                  if ((e.target as HTMLElement).closest("button")) return;
+                  dragControls.start(e);
+                }}
+                className={cn(
+                  "relative flex h-[52px] shrink-0 items-center justify-center border-b border-border-subtle bg-bg-modal px-3",
+                  isMobileLayout && "cursor-grab active:cursor-grabbing",
+                )}>
+                <DialogPrimitive.Title className="pointer-events-none text-sm font-semibold text-text-primary">
                   {tModal("modalTitle")}
                 </DialogPrimitive.Title>
                 <DialogPrimitive.Close asChild>
@@ -116,7 +173,8 @@ function SettingsModalDialog({
                     variant="ghost"
                     size="icon"
                     aria-label={tModal("close")}
-                    className="absolute right-2 top-1/2 h-8 w-8 -translate-y-1/2 rounded-full">
+                    onPointerDown={(e) => e.stopPropagation()}
+                    className="absolute right-2 top-1/2 h-11 min-h-11 w-11 min-w-11 -translate-y-1/2 rounded-full max-md:touch-manipulation md:h-9 md:min-h-9 md:w-9 md:min-w-9">
                     <X className="h-4 w-4" />
                   </Button>
                 </DialogPrimitive.Close>
@@ -125,17 +183,17 @@ function SettingsModalDialog({
               <Tabs
                 value={activeTab}
                 onValueChange={(v) => onTabChange(v as SettingsTab)}
-                className="flex min-h-0 min-w-0 flex-1 flex-col bg-bg-card">
-                <div className="shrink-0 border-b border-border-default px-6">
+                className="flex min-h-0 min-w-0 flex-1 flex-col bg-bg-modal">
+                <div className="h-12 shrink-0 border-b border-border-default px-4 md:px-6">
                   <TabsList
                     aria-label={tModal("modalNavLabel")}
-                    className="h-12 w-full min-w-0 justify-start gap-0 overflow-x-auto bg-transparent p-0 scrollbar-none [&::-webkit-scrollbar]:hidden">
+                    className="h-12 w-full min-w-0 justify-start gap-0 overflow-x-auto overflow-y-hidden bg-transparent p-0 scrollbar-none [&::-webkit-scrollbar]:hidden">
                     {TAB_META.map(({ id, icon: Icon }) => (
                       <TabsTrigger
                         key={id}
                         value={id}
                         className={cn(
-                          "h-12 shrink-0 rounded-none border-b-2 border-transparent bg-transparent px-5 text-sm font-medium text-text-muted shadow-none transition-colors",
+                          "h-12 min-h-12 shrink-0 rounded-none border-b-2 border-transparent bg-transparent px-4 text-sm font-medium text-text-muted shadow-none transition-colors md:px-5",
                           "hover:text-text-primary",
                           "focus-visible:ring-0 focus-visible:ring-offset-0",
                           "data-[state=active]:border-accent data-[state=active]:bg-transparent data-[state=active]:text-accent data-[state=active]:shadow-none",
@@ -150,10 +208,9 @@ function SettingsModalDialog({
                 <TabsContent
                   value={activeTab}
                   className={cn(
-                    "m-0 flex min-h-0 min-w-0 flex-1 flex-col outline-none focus-visible:ring-0 focus-visible:ring-offset-0",
-                    "max-md:max-h-[min(100dvh-7rem,100%)] max-md:overflow-y-auto max-md:overflow-x-hidden max-md:touch-scroll md:overflow-hidden",
+                    "m-0 flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden outline-none focus-visible:ring-0 focus-visible:ring-offset-0",
                   )}>
-                  <div className="flex min-h-0 min-w-0 flex-1 flex-col p-6">
+                  <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overflow-x-hidden px-4 py-4 touch-scroll md:p-6">
                     <SettingsPanels
                       locale={locale}
                       initial={initial}

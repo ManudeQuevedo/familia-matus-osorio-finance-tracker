@@ -143,7 +143,7 @@ export function MfaSettingsCompact() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3 max-md:flex-col max-md:items-stretch">
         {loading ? (
           <Loader2 className="h-4 w-4 animate-spin text-text-muted" />
         ) : null}
@@ -156,6 +156,7 @@ export function MfaSettingsCompact() {
         {!hasVerifiedTotp && !pendingFactorId ? (
           <Button
             type="button"
+            className="max-md:min-h-12 max-md:w-full"
             onClick={startEnrollment}
             disabled={busy || loading}>
             {busy ? (
@@ -173,6 +174,7 @@ export function MfaSettingsCompact() {
             type="button"
             variant="outline"
             size="sm"
+            className="max-md:min-h-12 max-md:w-full"
             onClick={() => setPendingFactorId("disable")}>
             {t("disableMfa")}
           </Button>
@@ -220,12 +222,13 @@ export function MfaSettingsCompact() {
               onChange={(e) =>
                 setEnrollCode(e.target.value.replace(/\D/g, "").slice(0, 6))
               }
-              className="font-mono tracking-[0.35em]"
+              className="font-mono tracking-[0.35em] max-md:h-12 max-md:min-h-12 max-md:text-base"
             />
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 max-md:flex-col">
             <Button
               type="button"
+              className="max-md:min-h-12 max-md:w-full"
               onClick={confirmEnrollment}
               disabled={busy || enrollCode.length !== 6}>
               {tSec("confirmEnrollment")}
@@ -233,6 +236,7 @@ export function MfaSettingsCompact() {
             <Button
               type="button"
               variant="outline"
+              className="max-md:min-h-12 max-md:w-full"
               onClick={() => {
                 setPendingFactorId(null);
                 setTotpUri(null);
@@ -258,13 +262,14 @@ export function MfaSettingsCompact() {
               onChange={(e) =>
                 setDisableCode(e.target.value.replace(/\D/g, "").slice(0, 6))
               }
-              className="font-mono tracking-[0.35em]"
+              className="font-mono tracking-[0.35em] max-md:h-12 max-md:min-h-12 max-md:text-base"
             />
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 max-md:flex-col">
             <Button
               type="button"
               variant="destructive"
+              className="max-md:min-h-12 max-md:w-full"
               onClick={disableMfa}
               disabled={busy || disableCode.length !== 6}>
               {tSec("disableMfa")}
@@ -272,6 +277,7 @@ export function MfaSettingsCompact() {
             <Button
               type="button"
               variant="outline"
+              className="max-md:min-h-12 max-md:w-full"
               onClick={() => {
                 setPendingFactorId(null);
                 setDisableCode("");

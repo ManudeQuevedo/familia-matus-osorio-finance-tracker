@@ -6,6 +6,8 @@ import { errorMessageFromUnknown } from "@/lib/supabase/error-message";
 
 export type AppLocale = "en" | "es";
 
+export type ExpenseFrequency = "monthly" | "bimonthly" | "annual" | "unique";
+
 export type PaycheckRecordRow = {
   id: string;
   name: string;
@@ -21,6 +23,8 @@ export type PaycheckRecordRow = {
   accountName: string;
   creatorInitial: string;
   recurringExpenseId: string | null;
+  expense_type: "recurring" | "planned" | "unplanned" | "unexpected";
+  frequency: ExpenseFrequency | null;
 };
 
 export type CategorySlice = {
@@ -64,6 +68,12 @@ export type SubcategoryOption = {
   name: string;
 };
 
+export type ExpenseTypeSlice = {
+  key: "recurring" | "planned" | "unplanned" | "unexpected";
+  amount: number;
+  color: string;
+};
+
 export type DashboardSnapshot = {
   year: number;
   month: number;
@@ -75,8 +85,13 @@ export type DashboardSnapshot = {
   monthlyIncome: number;
   monthlyVariableExpense: number;
   monthlyRecurringExpense: number;
+  monthlyPlannedExpense: number;
+  monthlyUnplannedExpense: number;
+  monthlyUnexpectedExpense: number;
   paycheckRecords: PaycheckRecordRow[];
   categorySlices: CategorySlice[];
+  expenseTypeSlices: ExpenseTypeSlice[];
+  plannedUpcoming: PaycheckRecordRow[];
   goals: GoalRow[];
   debts: DebtRow[];
   categories: CategoryOption[];
@@ -119,6 +134,7 @@ export async function fetchDashboardSnapshot(
       incomesRes,
       variableRes,
       recordsRes,
+      recurringMetaRes,
       goalsRes,
       debtsRes,
       categoriesRes,
@@ -138,19 +154,23 @@ export async function fetchDashboardSnapshot(
         .eq("period_month", month),
       supabase
         .from("variable_expenses")
-        .select("amount, category_id")
+        .select("amount, category_id, expense_type")
         .eq("family_id", familyId)
         .gte("date", monthStart)
         .lte("date", monthEnd),
       supabase
         .from("expense_records")
         .select(
-          "id, name, amount, due_date, status, paid_date, paycheck_period, subcategory_id, account_id, user_id, recurring_expense_id",
+          "id, name, amount, due_date, status, paid_date, paycheck_period, subcategory_id, account_id, user_id, recurring_expense_id, expense_type",
         )
         .eq("family_id", familyId)
         .eq("period_year", year)
         .eq("period_month", month)
         .order("due_date", { ascending: true }),
+      supabase
+        .from("recurring_expenses")
+        .select("id, frequency")
+        .eq("family_id", familyId),
       supabase
         .from("goals")
         .select(
@@ -182,6 +202,7 @@ export async function fetchDashboardSnapshot(
     if (incomesRes.error) throw incomesRes.error;
     if (variableRes.error) throw variableRes.error;
     if (recordsRes.error) throw recordsRes.error;
+    if (recurringMetaRes.error) throw recurringMetaRes.error;
     if (goalsRes.error) throw goalsRes.error;
     if (debtsRes.error) throw debtsRes.error;
     if (categoriesRes.error) throw categoriesRes.error;
@@ -203,6 +224,23 @@ export async function fetchDashboardSnapshot(
 
     const monthlyVariableExpense = (variableRes.data ?? []).reduce(
       (s, r) => s + num(r.amount),
+      0,
+    );
+
+    const monthlyUnplannedExpense = (variableRes.data ?? []).reduce(
+      (s, r) =>
+        s +
+        (((r.expense_type as string | null) ?? "unplanned") === "unplanned"
+          ? num(r.amount)
+          : 0),
+      0,
+    );
+    const monthlyUnexpectedExpense = (variableRes.data ?? []).reduce(
+      (s, r) =>
+        s +
+        (((r.expense_type as string | null) ?? "unplanned") === "unexpected"
+          ? num(r.amount)
+          : 0),
       0,
     );
 
@@ -229,6 +267,13 @@ export async function fetchDashboardSnapshot(
 
     const accById = new Map((accountsRes.data ?? []).map((a) => [a.id, a.name]));
 
+    const freqByRecurringId = new Map(
+      (recurringMetaRes.data ?? []).map((row) => [
+        row.id as string,
+        ((row.frequency as string | null) ?? "monthly") as ExpenseFrequency,
+      ]),
+    );
+
     const recurringByCategory = new Map<string, number>();
     const paycheckRecords: PaycheckRecordRow[] = [];
 
@@ -244,6 +289,16 @@ export async function fetchDashboardSnapshot(
       }
       const categoryName =
         cat?.[locale === "es" ? "name_es" : "name_en"] ?? "—";
+      const rid = (r.recurring_expense_id as string | null) ?? null;
+      const expenseTypeRaw = r.expense_type as string | null | undefined;
+      const expense_type: PaycheckRecordRow["expense_type"] =
+        expenseTypeRaw === "planned"
+          ? "planned"
+          : expenseTypeRaw === "unplanned"
+            ? "unplanned"
+            : expenseTypeRaw === "unexpected"
+              ? "unexpected"
+              : "recurring";
       paycheckRecords.push({
         id: r.id as string,
         name: r.name as string,
@@ -260,14 +315,62 @@ export async function fetchDashboardSnapshot(
           r.user_id as string,
           emailByUserId,
         ),
-        recurringExpenseId: (r.recurring_expense_id as string | null) ?? null,
+        recurringExpenseId: rid,
+        expense_type,
+        frequency: rid ? freqByRecurringId.get(rid) ?? "monthly" : null,
       });
     }
 
-    const monthlyRecurringExpense = records.reduce(
-      (s, r) => s + num(r.amount),
-      0,
-    );
+    const monthlyRecurringExpense = records
+      .filter((r) => {
+        const et = (r.expense_type as string | null) ?? "recurring";
+        return et === "recurring";
+      })
+      .reduce((s, r) => s + num(r.amount), 0);
+
+    const monthlyPlannedExpense = records
+      .filter((r) => (r.expense_type as string | null) === "planned")
+      .reduce((s, r) => s + num(r.amount), 0);
+
+    const todayIso = new Date().toISOString().slice(0, 10);
+    const weekAhead = new Date(`${todayIso}T12:00:00`);
+    weekAhead.setDate(weekAhead.getDate() + 7);
+    const weekAheadIso = weekAhead.toISOString().slice(0, 10);
+
+    const expenseTypeSlices: ExpenseTypeSlice[] = (
+      [
+        {
+          key: "recurring",
+          amount: monthlyRecurringExpense,
+          color: "#0ea5e9",
+        },
+        {
+          key: "planned",
+          amount: monthlyPlannedExpense,
+          color: "#6366f1",
+        },
+        {
+          key: "unplanned",
+          amount: monthlyUnplannedExpense,
+          color: "#f59e0b",
+        },
+        {
+          key: "unexpected",
+          amount: monthlyUnexpectedExpense,
+          color: "#ef4444",
+        },
+      ] satisfies ExpenseTypeSlice[]
+    ).filter((s) => s.amount > 0);
+
+    const plannedUpcoming = paycheckRecords
+      .filter(
+        (row) =>
+          row.expense_type === "planned" &&
+          row.status !== "paid" &&
+          row.due_date >= todayIso &&
+          row.due_date <= weekAheadIso,
+      )
+      .sort((a, b) => a.due_date.localeCompare(b.due_date));
 
     const categorySlicesMap = new Map<string, CategorySlice>();
     for (const c of categories) {
@@ -324,8 +427,13 @@ export async function fetchDashboardSnapshot(
         monthlyIncome,
         monthlyVariableExpense,
         monthlyRecurringExpense,
+        monthlyPlannedExpense,
+        monthlyUnplannedExpense,
+        monthlyUnexpectedExpense,
         paycheckRecords,
         categorySlices,
+        expenseTypeSlices,
+        plannedUpcoming,
         goals,
         debts,
         categories: categories as CategoryOption[],

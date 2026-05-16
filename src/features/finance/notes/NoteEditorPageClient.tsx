@@ -1,13 +1,15 @@
 "use client";
 
 import type { JSONContent } from "@tiptap/react";
-import { ArrowLeft, Palette, Pin, PinOff, Trash2 } from "lucide-react";
+import { ArrowLeft, Palette, Pin, PinOff } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { FinanceContentHeaderActions } from "@/components/finance/FinanceContentHeaderActions";
+import { FinanceHeaderSearchTrigger } from "@/components/finance/finance-header-search-trigger";
 import { FinancePageShell } from "@/components/finance/FinancePageShell";
+import { RowDeleteButton } from "@/components/finance/row-delete-button";
 import type { RichTextEditorChange } from "@/components/notes/rich-text-editor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -139,18 +141,22 @@ export function NoteEditorPageClient({
     await toggleNotePinned({ locale, id: initialNote.id, isPinned: next });
   };
 
-  const onDelete = async () => {
+  const onDelete = () => {
+    const displayName =
+      title.trim() || (initialNote.title ?? "").trim() || t("titlePlaceholder");
     toastConfirmDestructive({
-      title: t("deleteConfirm"),
+      title: tc("deleteNamed", { name: displayName }),
+      description: tc("deleteCannotUndo"),
+      duration: 5000,
       confirmLabel: tc("delete"),
       cancelLabel: tc("cancel"),
       onConfirm: async () => {
         const res = await deleteNote({ locale, id: initialNote.id });
         if (res.ok) {
-          notify.notes.deleteSuccess();
+          notify.notes.deleteSuccess(displayName);
           router.push("/notes");
         } else {
-          notify.generic.unexpectedError();
+          notify.notes.deleteError();
         }
       },
     });
@@ -173,7 +179,7 @@ export function NoteEditorPageClient({
 
   return (
     <FinancePageShell>
-      <header className="sticky top-0 z-20 -mx-4 border-b border-border-default bg-bg-sidebar px-4 py-3 shadow-sm md:-mx-6 md:px-6">
+      <header className="relative sticky top-0 z-20 -mx-4 border-b border-border-default bg-bg-sidebar px-4 py-3 shadow-sm md:-mx-6 md:px-6">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" className="shrink-0" asChild>
             <Link href="/notes" aria-label={t("back")}>
@@ -185,8 +191,9 @@ export function NoteEditorPageClient({
             onChange={(e) => setTitle(e.target.value)}
             onBlur={onTitleBlur}
             placeholder={t("titlePlaceholder")}
-            className="h-9 flex-1 border-0 bg-transparent px-0 text-lg font-semibold shadow-none focus-visible:ring-0"
+            className="h-9 min-w-0 flex-1 border-0 bg-transparent px-0 text-lg font-semibold shadow-none focus-visible:ring-0"
           />
+          <FinanceHeaderSearchTrigger variant="inline" />
           <div className="flex shrink-0 items-center gap-1">
             <Button
               type="button"
@@ -204,15 +211,11 @@ export function NoteEditorPageClient({
               value={color}
               onChange={(c) => void onColorChange(c)}
             />
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="text-red-600"
-              onClick={() => void onDelete()}
-              aria-label={t("delete")}>
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            <RowDeleteButton
+              alwaysVisible
+              ariaLabel={t("delete")}
+              onClick={() => onDelete()}
+            />
             <FinanceContentHeaderActions />
           </div>
         </div>

@@ -208,6 +208,29 @@ export async function upsertAccount(input: {
   return { ok: true as const };
 }
 
+export async function deactivateAccount(input: { locale: string; id: string }) {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "unauthorized" };
+
+  const familyId = await getFamilyIdForUser(supabase, user.id);
+  if (!familyId) {
+    return { ok: false as const, error: "family_not_configured" };
+  }
+
+  const { error } = await supabase
+    .from("accounts")
+    .update({ is_active: false })
+    .eq("id", input.id)
+    .eq("family_id", familyId);
+
+  if (error) return { ok: false as const, error: error.message };
+  revalidateSettings(input.locale);
+  return { ok: true as const };
+}
+
 export async function deleteAccount(input: { locale: string; id: string }) {
   const supabase = await createSupabaseServerClient();
   const {
@@ -320,7 +343,8 @@ export async function deleteCustomSubcategory(input: {
   const { error } = await supabase
     .from("subcategories")
     .delete()
-    .eq("id", input.id);
+    .eq("id", input.id)
+    .not("user_id", "is", null);
 
   if (error) return { ok: false as const, error: error.message };
   revalidateSettings(input.locale);

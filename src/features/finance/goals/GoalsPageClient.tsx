@@ -25,18 +25,29 @@ import {
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FinanceContentHeaderActions } from "@/components/finance/FinanceContentHeaderActions";
+import { FinanceHeaderSearchTrigger } from "@/components/finance/finance-header-search-trigger";
 import { CreatorBadge } from "@/components/finance/CreatorBadge";
 import { FinancePageShell } from "@/components/finance/FinancePageShell";
+import { RowDeleteButton } from "@/components/finance/row-delete-button";
 import {
   GOAL_COLOR_OPTIONS,
   GOAL_ICON_OPTIONS,
   goalLucideIcon,
 } from "@/features/finance/goal-icons";
 import { computeGoalMetrics } from "@/lib/finance/goal-calculations";
-import { addGoalContribution, createGoal } from "@/lib/finance/actions";
-import { notify } from "@/lib/toast";
+import {
+  addGoalContribution,
+  createGoal,
+  deleteGoal,
+  deleteGoalContribution,
+} from "@/lib/finance/actions";
+import { notify, toastConfirmDestructive } from "@/lib/toast";
 import { formatMxn, formatShortDate } from "@/lib/finance/format";
-import type { GoalListItem, GoalsSnapshot } from "@/lib/finance/goals-queries";
+import type {
+  GoalContributionListItem,
+  GoalListItem,
+  GoalsSnapshot,
+} from "@/lib/finance/goals-queries";
 import { useEscape } from "@/lib/hooks/use-escape";
 import { cn } from "@/lib/utils";
 
@@ -125,6 +136,17 @@ export function GoalsPageClient({
   });
 
   const snapshot = data ?? initialData;
+
+  const contributionsByGoal = useMemo(() => {
+    const m = new Map<string, GoalContributionListItem[]>();
+    if (!snapshot) return m;
+    for (const c of snapshot.contributions) {
+      const list = m.get(c.goal_id) ?? [];
+      list.push(c);
+      m.set(c.goal_id, list);
+    }
+    return m;
+  }, [snapshot]);
 
   const previewMetrics = useMemo(() => {
     const target = Number.parseFloat(targetAmount.replace(",", ".")) || 0;
@@ -229,6 +251,51 @@ export function GoalsPageClient({
     }
   };
 
+  const confirmDeleteGoal = (goal: GoalListItem) => {
+    toastConfirmDestructive({
+      title: tc("deleteNamed", { name: goal.title }),
+      description: tc("deleteCannotUndo"),
+      duration: 5000,
+      confirmLabel: tc("delete"),
+      cancelLabel: tc("cancel"),
+      onConfirm: async () => {
+        const res = await deleteGoal({ locale, goalId: goal.id });
+        if (res.ok) {
+          notify.goals.deleteSuccess(goal.title);
+          await queryClient.invalidateQueries({ queryKey: ["finance-goals"] });
+        } else {
+          notify.goals.deleteError();
+        }
+      },
+    });
+  };
+
+  const confirmDeleteContribution = (
+    goalTitle: string,
+    row: GoalContributionListItem,
+  ) => {
+    const name = `${formatMxn(intlLocale, row.amount)} · ${formatShortDate(intlLocale, row.date)}`;
+    toastConfirmDestructive({
+      title: tc("deleteNamed", { name }),
+      description: tc("deleteCannotUndo"),
+      duration: 5000,
+      confirmLabel: tc("delete"),
+      cancelLabel: tc("cancel"),
+      onConfirm: async () => {
+        const res = await deleteGoalContribution({
+          locale,
+          contributionId: row.id,
+        });
+        if (res.ok) {
+          notify.goals.contributionDeleteSuccess(goalTitle);
+          await queryClient.invalidateQueries({ queryKey: ["finance-goals"] });
+        } else {
+          notify.goals.contributionDeleteError();
+        }
+      },
+    });
+  };
+
   if (loadError && !snapshot) {
     return (
       <FinancePageShell className="flex flex-col items-center justify-center py-10 text-center">
@@ -249,7 +316,7 @@ export function GoalsPageClient({
         <motion.header
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="flex items-start justify-between gap-4">
+          className="relative flex items-start justify-between gap-4">
           <motion.div
             initial={{ opacity: 0, x: -8 }}
             animate={{ opacity: 1, x: 0 }}>
@@ -258,6 +325,7 @@ export function GoalsPageClient({
             </h1>
             <p className="mt-1 text-sm text-text-muted">{t("subtitle")}</p>
           </motion.div>
+          <FinanceHeaderSearchTrigger />
           <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
             <Button onClick={() => setNewOpen(true)} size="sm">
               <Plus className="mr-1 h-4 w-4" />
@@ -288,13 +356,14 @@ export function GoalsPageClient({
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {snapshot?.goals.map((goal, i) => {
             const Icon = goalLucideIcon(goal.icon);
+            const contribList = contributionsByGoal.get(goal.id) ?? [];
             return (
               <motion.div
                 key={goal.id}
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}>
-                <Card className="overflow-hidden">
+                <Card className="group overflow-hidden">
                   <CardHeader className="flex flex-row items-start gap-3 pb-2">
                     <motion.div
                       whileHover={{ scale: 1.05 }}
@@ -320,6 +389,10 @@ export function GoalsPageClient({
                         {formatMxn(intlLocale, goal.target_amount)}
                       </p>
                     </div>
+                    <RowDeleteButton
+                      ariaLabel={tc("delete")}
+                      onClick={() => confirmDeleteGoal(goal)}
+                    />
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <motion.div
@@ -369,6 +442,36 @@ export function GoalsPageClient({
                         {t("ai.analyze")}
                       </Button>
                     </div>
+                    {contribList.length > 0 ? (
+                      <div className="border-t border-border-subtle pt-3">
+                        <p className="mb-2 text-xs font-medium text-text-muted">
+                          {t("contributionsTitle")}
+                        </p>
+                        <ul className="space-y-1.5">
+                          {contribList.map((c) => (
+                            <li
+                              key={c.id}
+                              className="group flex items-center justify-between gap-2 rounded-lg border border-border-subtle bg-bg-card-nested/80 px-2 py-1.5 text-xs dark:border-border-default">
+                              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                                <CreatorBadge letter={c.creatorInitial} />
+                                <span className="text-text-muted">
+                                  {formatShortDate(intlLocale, c.date)}
+                                </span>
+                                <span className="font-semibold tabular-nums">
+                                  {formatMxn(intlLocale, c.amount)}
+                                </span>
+                              </div>
+                              <RowDeleteButton
+                                ariaLabel={tc("delete")}
+                                onClick={() =>
+                                  confirmDeleteContribution(goal.title, c)
+                                }
+                              />
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
                   </CardContent>
                 </Card>
               </motion.div>

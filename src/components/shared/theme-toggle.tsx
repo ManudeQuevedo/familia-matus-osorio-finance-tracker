@@ -270,13 +270,15 @@ export function ThemePreferenceOption({
       disabled={disabled}
       onClick={handleClick}
       className={cn(
-        "flex flex-col items-center gap-2 rounded-xl border px-4 py-4 text-sm font-medium transition",
+        "flex w-full rounded-xl border text-sm font-medium transition",
+        "h-12 min-h-12 shrink-0 flex-row items-center justify-start gap-3 px-4 py-0",
+        "md:h-auto md:min-h-0 md:flex-col md:items-center md:justify-center md:gap-2 md:px-4 md:py-4",
         active
           ? "border-accent bg-accent-muted text-accent ring-2 ring-accent/30"
           : "border-border-default bg-bg-card text-text-secondary hover:border-border-strong dark:border-border-default dark:text-text-muted",
       )}>
-      <Icon className="h-6 w-6" />
-      {label}
+      <Icon className="h-5 w-5 shrink-0 md:h-6 md:w-6" />
+      <span className="truncate text-left">{label}</span>
     </button>
   );
 }

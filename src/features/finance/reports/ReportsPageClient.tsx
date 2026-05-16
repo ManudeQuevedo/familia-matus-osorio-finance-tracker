@@ -20,6 +20,7 @@ import {
 } from "recharts";
 
 import { FinanceContentHeaderActions } from "@/components/finance/FinanceContentHeaderActions";
+import { FinanceHeaderSearchTrigger } from "@/components/finance/finance-header-search-trigger";
 import { FinancePageShell } from "@/components/finance/FinancePageShell";
 import { useAccentChartColors } from "@/hooks/use-accent-chart-colors";
 import { Badge } from "@/components/ui/badge";
@@ -159,10 +160,11 @@ export function ReportsPageClient({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35 }}
         className="w-full">
-        <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
+        <header className="relative mb-6 flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="text-2xl font-semibold">{t("title")}</h1>
           </div>
+          <FinanceHeaderSearchTrigger />
           <motion.div layout className="flex flex-wrap items-end gap-3">
             <div>
               <Label className="text-xs">{t("filters.periodType")}</Label>

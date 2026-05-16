@@ -24,6 +24,12 @@ import { triggerHaptic } from "@/lib/haptic";
 import { useEscape } from "@/lib/hooks/use-escape";
 import { cn } from "@/lib/utils";
 
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
 export type QuickActionId =
   | "askAi"
   | "antExpense"
@@ -65,6 +71,8 @@ const ACTIONS: {
 type QuickActionFabProps = {
   onSelect: (id: QuickActionId) => void;
   className?: string;
+  /** Desktop keyboard hints shown on hover (e.g. from useModKeyLabel). */
+  shortcutHints?: Partial<Record<QuickActionId, string>>;
 };
 
 type FabActionPillProps = {
@@ -76,6 +84,7 @@ type FabActionPillProps = {
   onSelect: (id: QuickActionId) => void;
   onPillKeyDown: (e: KeyboardEvent<HTMLButtonElement>, index: number) => void;
   pillRef: (el: HTMLButtonElement | null) => void;
+  shortcutHint?: string;
 };
 
 function FabActionPill({
@@ -87,12 +96,13 @@ function FabActionPill({
   onSelect,
   onPillKeyDown,
   pillRef,
+  shortcutHint,
 }: FabActionPillProps) {
   const Icon = action.icon;
   const isSelected = selectedId === action.id;
   const isOther = isSelecting && !isSelected;
 
-  return (
+  const core = (
     <motion.button
       type="button"
       ref={pillRef}
@@ -114,7 +124,7 @@ function FabActionPill({
       onClick={() => onSelect(action.id)}
       onKeyDown={(e) => onPillKeyDown(e, index)}
       className={cn(
-        "group flex min-h-11 min-w-[min(100%,280px)] cursor-pointer items-center gap-3 rounded-2xl border border-border-default bg-bg-modal px-5 py-3 text-sm font-medium text-text-primary shadow-md",
+        "group flex min-h-11 min-w-[min(100%,280px)] cursor-pointer items-center gap-3 rounded-2xl border border-border-default bg-bg-modal px-5 py-3 text-sm font-medium text-text-primary shadow-md md:max-w-sm",
         "transition-[background-color,border-color,color] duration-150 ease-out",
         "hover:border-accent/40 hover:bg-bg-card-hover hover:text-accent",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
@@ -132,9 +142,24 @@ function FabActionPill({
       />
     </motion.button>
   );
+
+  if (!shortcutHint) return core;
+
+  return (
+    <Tooltip delayDuration={200}>
+      <TooltipTrigger asChild>{core}</TooltipTrigger>
+      <TooltipContent side="left" align="center" className="font-mono text-xs">
+        {shortcutHint}
+      </TooltipContent>
+    </Tooltip>
+  );
 }
 
-export function QuickActionFab({ onSelect, className }: QuickActionFabProps) {
+export function QuickActionFab({
+  onSelect,
+  className,
+  shortcutHints,
+}: QuickActionFabProps) {
   const t = useTranslations("Finance.fab");
   const [open, setOpen] = useState(false);
   const [isSelecting, setIsSelecting] = useState(false);
@@ -233,6 +258,7 @@ export function QuickActionFab({ onSelect, className }: QuickActionFabProps) {
                   selectedId={selectedId}
                   onSelect={handleSelect}
                   onPillKeyDown={onPillKeyDown}
+                  shortcutHint={shortcutHints?.[action.id]}
                   pillRef={(el) => {
                     pillRefs.current[index] = el;
                   }}

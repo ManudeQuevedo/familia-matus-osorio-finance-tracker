@@ -7,7 +7,9 @@ import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useMemo, useState } from "react";
 
 import { FinanceContentHeaderActions } from "@/components/finance/FinanceContentHeaderActions";
+import { FinanceHeaderSearchTrigger } from "@/components/finance/finance-header-search-trigger";
 import { FinancePageShell } from "@/components/finance/FinancePageShell";
+import { RowDeleteButton } from "@/components/finance/row-delete-button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,14 +19,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "@/i18n/navigation";
 import { extractPlainText } from "@/lib/finance/note-content";
 import { noteCardClass } from "@/lib/finance/note-colors";
-import { createEmptyNote } from "@/lib/finance/notes-actions";
+import { createEmptyNote, deleteNote } from "@/lib/finance/notes-actions";
 import { formatShortDate } from "@/lib/finance/format";
 import {
   getReminderStatus,
   type NoteRow,
   type NotesSnapshot,
 } from "@/lib/finance/notes-queries";
-import { notify } from "@/lib/toast";
+import { notify, toastConfirmDestructive } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
 type NoteFilter = "all" | "reminders" | "todos" | "pinned";
@@ -66,11 +68,13 @@ function NoteCard({
   note,
   locale,
   onOpen,
+  onRequestDelete,
   t,
 }: {
   note: NoteRow;
   locale: string;
   onOpen: (note: NoteRow) => void;
+  onRequestDelete: (note: NoteRow) => void;
   t: ReturnType<typeof useTranslations<"Finance.notes">>;
 }) {
   const reminderStatus =
@@ -89,7 +93,7 @@ function NoteCard({
         }
       }}
       className={cn(
-        "cursor-pointer overflow-hidden border transition-shadow hover:shadow-md",
+        "group cursor-pointer overflow-hidden border transition-shadow hover:shadow-md",
         noteCardClass(note.color),
         reminderStatus === "overdue" &&
           "border-red-300/80 dark:border-red-800/80",
@@ -128,9 +132,15 @@ function NoteCard({
               </p>
             </div>
           </div>
-          <Badge variant="outline" className="shrink-0 text-xs">
-            {t(`types.${note.type}`)}
-          </Badge>
+          <div className="flex shrink-0 items-start gap-1">
+            <Badge variant="outline" className="text-xs">
+              {t(`types.${note.type}`)}
+            </Badge>
+            <RowDeleteButton
+              ariaLabel={t("card.delete")}
+              onClick={() => onRequestDelete(note)}
+            />
+          </div>
         </div>
 
         <p className="mt-auto pt-3 text-xs text-text-muted">
@@ -187,6 +197,44 @@ export function NotesPageClient({
     [router],
   );
 
+  const confirmDeleteNote = useCallback(
+    (note: NoteRow) => {
+      const name =
+        note.title?.trim() ||
+        notePreview(note).trim().slice(0, 120) ||
+        t("emptyPreview");
+      toastConfirmDestructive({
+        title: tc("deleteNamed", { name }),
+        description: tc("deleteCannotUndo"),
+        duration: 5000,
+        confirmLabel: tc("delete"),
+        cancelLabel: tc("cancel"),
+        onConfirm: async () => {
+          const previous = queryClient.getQueryData<NotesSnapshot>([
+            "finance-notes",
+          ]);
+          queryClient.setQueryData<NotesSnapshot>(["finance-notes"], (old) => {
+            if (!old) return old;
+            return { ...old, notes: old.notes.filter((n) => n.id !== note.id) };
+          });
+          const res = await deleteNote({ locale, id: note.id });
+          if (res.ok) {
+            notify.notes.deleteSuccess(name);
+            await queryClient.invalidateQueries({
+              queryKey: ["finance-notes"],
+            });
+          } else {
+            if (previous) {
+              queryClient.setQueryData(["finance-notes"], previous);
+            }
+            notify.notes.deleteError();
+          }
+        },
+      });
+    },
+    [locale, queryClient, t, tc],
+  );
+
   const handleNewNote = async () => {
     setCreating(true);
     setCreateError(null);
@@ -227,13 +275,14 @@ export function NotesPageClient({
         animate={{ opacity: 1, y: 0 }}
         className="space-y-6">
         <header className="space-y-4">
-          <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="relative flex flex-wrap items-start justify-between gap-4">
             <div>
               <h1 className="text-2xl font-semibold tracking-tight">
                 {t("title")}
               </h1>
               <p className="mt-1 text-sm text-text-muted">{t("subtitle")}</p>
             </div>
+            <FinanceHeaderSearchTrigger />
             <div className="flex flex-wrap items-center justify-end gap-2">
               <Button
                 size="sm"
@@ -309,6 +358,7 @@ export function NotesPageClient({
                 note={note}
                 locale={intlLocale}
                 onOpen={openNote}
+                onRequestDelete={confirmDeleteNote}
                 t={t}
               />
             </motion.div>

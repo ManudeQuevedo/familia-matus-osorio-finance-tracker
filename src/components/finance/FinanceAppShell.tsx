@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from "next-intl";
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   useTransition,
@@ -13,7 +14,6 @@ import {
   type Ref,
 } from "react";
 
-import { AppQuickActions } from "@/components/finance/AppQuickActions";
 import { FINANCE_PATH_BY_KEY } from "@/components/finance/finance-nav-config";
 import type { FinanceNavKey } from "@/components/finance/finance-nav-config";
 import { FinanceMobileTopBar } from "@/components/finance/FinanceMobileTopBar";
@@ -27,6 +27,7 @@ import {
 import { ThemeCycleToggle } from "@/components/shared/theme-toggle";
 import { useIsDesktop } from "@/hooks/use-is-desktop";
 import { Link, usePathname } from "@/i18n/navigation";
+import { useModKeyLabel } from "@/lib/hooks/use-mod-key-label";
 import {
   getUserPref,
   setUserPref,
@@ -50,6 +51,8 @@ function SidebarNavLink({
   className,
   onNavigate,
   linkRef,
+  desktopNav,
+  desktopShortcut,
 }: {
   item: { key: FinanceNavKey; label: string };
   href: string;
@@ -59,7 +62,13 @@ function SidebarNavLink({
   className?: string;
   onNavigate?: (key: FinanceNavKey) => void;
   linkRef?: Ref<HTMLAnchorElement>;
+  desktopNav: boolean;
+  desktopShortcut?: string | null;
 }) {
+  const showShortcutTip = desktopNav && desktopShortcut;
+  const tooltipText = showShortcutTip
+    ? `${item.label}\u00a0·\u00a0${desktopShortcut}`
+    : item.label;
   const link = (
     <Link
       ref={linkRef}
@@ -104,11 +113,11 @@ function SidebarNavLink({
 
   return (
     <Tooltip
-      delayDuration={0}
-      {...(!collapsed ? { open: false as boolean } : {})}>
+      delayDuration={showShortcutTip ? 350 : 0}
+      {...(!collapsed && !showShortcutTip ? { open: false as boolean } : {})}>
       <TooltipTrigger asChild>{link}</TooltipTrigger>
-      {collapsed ? (
-        <TooltipContent side="right">{item.label}</TooltipContent>
+      {collapsed || showShortcutTip ? (
+        <TooltipContent side="right">{tooltipText}</TooltipContent>
       ) : null}
     </Tooltip>
   );
@@ -163,6 +172,22 @@ export function FinanceAppShell({
   const locale = useLocale();
   const t = useTranslations("Finance.nav");
   const isDesktopViewport = useIsDesktop();
+  const mod = useModKeyLabel();
+
+  const desktopNavHints = useMemo<
+    Partial<Record<FinanceNavKey, string>>
+  >(() => {
+    if (!isDesktopViewport) return {};
+    return {
+      dashboard: `${mod}1`,
+      expenses: `${mod}2`,
+      incomes: `${mod}3`,
+      goals: `${mod}4`,
+      debts: `${mod}5`,
+      reports: `${mod}6`,
+      ai: `${mod}/`,
+    };
+  }, [isDesktopViewport, mod]);
 
   const [collapsed, setCollapsed] = useState(false);
   const [hydrated, setHydrated] = useState(false);
@@ -188,6 +213,15 @@ export function FinanceAppShell({
       return next;
     });
   }, [user.id]);
+
+  useEffect(() => {
+    const onToggle = () => {
+      if (window.innerWidth < 768) return;
+      toggleCollapsed();
+    };
+    window.addEventListener("toggle-sidebar", onToggle);
+    return () => window.removeEventListener("toggle-sidebar", onToggle);
+  }, [toggleCollapsed]);
 
   const pathWithoutLocale = (() => {
     const prefix = `/${locale}`;
@@ -315,6 +349,8 @@ export function FinanceAppShell({
                     collapsed={sidebarCollapsed}
                     prefersReducedMotion={prefersReducedMotion}
                     onNavigate={onNavClick}
+                    desktopNav={isDesktopViewport}
+                    desktopShortcut={desktopNavHints[item.key]}
                     linkRef={(el) => {
                       navLinkRefs.current[index] = el;
                     }}
@@ -359,8 +395,6 @@ export function FinanceAppShell({
               {children}
             </div>
           </main>
-
-          <AppQuickActions />
         </div>
       </FinanceShellUserProvider>
     </TooltipProvider>

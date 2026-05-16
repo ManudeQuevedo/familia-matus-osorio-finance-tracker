@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 
 import { FinanceContentHeaderActions } from "@/components/finance/FinanceContentHeaderActions";
+import { FinanceHeaderSearchTrigger } from "@/components/finance/finance-header-search-trigger";
 import { FinancePageShell } from "@/components/finance/FinancePageShell";
 import type { SettingsSnapshot } from "@/lib/finance/settings-queries";
 import { SettingsPanels } from "@/features/finance/settings/settings-panels";
@@ -21,7 +22,7 @@ export function SettingsPageClient({
 
   return (
     <FinancePageShell className="space-y-8 pb-8 md:pb-10">
-      <header className="flex flex-wrap items-start justify-between gap-4">
+      <header className="relative flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">
             {t("title")}
@@ -30,6 +31,7 @@ export function SettingsPageClient({
             {t("subtitle")}
           </p>
         </div>
+        <FinanceHeaderSearchTrigger />
         <FinanceContentHeaderActions />
       </header>
       <SettingsPanels

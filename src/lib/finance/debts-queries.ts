@@ -13,6 +13,15 @@ import { errorMessageFromUnknown } from "@/lib/supabase/error-message";
 
 export type DebtStatus = "active" | "paid_off";
 
+export type DebtPaymentListItem = {
+  id: string;
+  debt_id: string;
+  amount_paid: number;
+  payment_date: string;
+  notes: string | null;
+  creatorInitial: string;
+};
+
 export type DebtListItem = {
   id: string;
   name: string;
@@ -35,6 +44,7 @@ export type DebtListItem = {
 export type DebtsSnapshot = {
   locale: AppLocale;
   debts: DebtListItem[];
+  payments: DebtPaymentListItem[];
   summary: {
     totalDebt: number;
     totalMonthlyPayments: number;
@@ -68,7 +78,7 @@ export async function fetchDebtsSnapshot(
       (famProfiles ?? []).map((p) => [p.id as string, (p.email as string) ?? ""]),
     );
 
-    const [debtsRes, incomesRes] = await Promise.all([
+    const [debtsRes, incomesRes, paymentsRes] = await Promise.all([
       supabase
         .from("debts")
         .select(
@@ -82,10 +92,17 @@ export async function fetchDebtsSnapshot(
         .eq("family_id", familyId)
         .eq("period_year", year)
         .eq("period_month", month),
+      supabase
+        .from("debt_payments")
+        .select("id, debt_id, amount_paid, payment_date, notes, user_id")
+        .eq("family_id", familyId)
+        .order("payment_date", { ascending: false })
+        .limit(300),
     ]);
 
     if (debtsRes.error) throw debtsRes.error;
     if (incomesRes.error) throw incomesRes.error;
+    if (paymentsRes.error) throw paymentsRes.error;
 
     const monthlyIncome = (incomesRes.data ?? []).reduce(
       (s, r) => s + num(r.amount_mxn),
@@ -139,10 +156,25 @@ export async function fetchDebtsSnapshot(
       0,
     );
 
+    const payments: DebtPaymentListItem[] = (paymentsRes.data ?? []).map(
+      (p) => ({
+        id: p.id as string,
+        debt_id: p.debt_id as string,
+        amount_paid: num(p.amount_paid),
+        payment_date: p.payment_date as string,
+        notes: (p.notes as string | null) ?? null,
+        creatorInitial: householdCreatorInitial(
+          p.user_id as string,
+          emailByUserId,
+        ),
+      }),
+    );
+
     return {
       data: {
         locale,
         debts,
+        payments,
         summary: {
           totalDebt,
           totalMonthlyPayments,

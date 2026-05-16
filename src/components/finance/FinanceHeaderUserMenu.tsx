@@ -9,12 +9,14 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useSettingsModal } from "@/contexts/settings-modal-context";
 import { useRouter } from "@/i18n/navigation";
 import { signOutAndClearPreferences } from "@/lib/auth/sign-out-client";
 import { accountInitials, shortAccountName } from "@/lib/finance/user-display";
+import { useModKeyLabel } from "@/lib/hooks/use-mod-key-label";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -34,6 +36,7 @@ export function FinanceHeaderUserMenu({
   const tNav = useTranslations("Finance.nav");
   const router = useRouter();
   const { openSettings } = useSettingsModal();
+  const mod = useModKeyLabel();
 
   const initials = accountInitials(fullName, email);
   const headerName = shortAccountName(fullName, email, tNav("you"));
@@ -77,7 +80,10 @@ export function FinanceHeaderUserMenu({
         ) : null}
         <DropdownMenuItem onSelect={() => openSettings("perfil")}>
           <Settings className="mr-2 h-4 w-4 shrink-0" aria-hidden />
-          {t("settings")}
+          <span className="flex-1">{t("settings")}</span>
+          <DropdownMenuShortcut className="ml-4 hidden font-mono text-[11px] tracking-normal md:inline-flex">
+            {`${mod},`}
+          </DropdownMenuShortcut>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem

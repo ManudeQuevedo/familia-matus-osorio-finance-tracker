@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 
 import { FinanceContentHeaderActions } from "@/components/finance/FinanceContentHeaderActions";
+import { FinanceHeaderSearchTrigger } from "@/components/finance/finance-header-search-trigger";
 import { FinancePageShell } from "@/components/finance/FinancePageShell";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
@@ -24,13 +25,14 @@ export default async function MorePage({ params }: Props) {
   });
   return (
     <FinancePageShell className="mx-auto max-w-md space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="relative flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold">{t("moreTitle")}</h1>
           <p className="mt-2 text-sm text-text-secondary dark:text-text-muted">
             {t("moreIntro")}
           </p>
         </div>
+        <FinanceHeaderSearchTrigger />
         <FinanceContentHeaderActions />
       </div>
       <div className="flex flex-col gap-3">

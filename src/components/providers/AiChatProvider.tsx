@@ -80,6 +80,7 @@ export function AiChatProvider({ children }: { children: React.ReactNode }) {
         setMessages([]);
       } else if (opts?.conversationId !== undefined) {
         setConversationId(opts.conversationId);
+        setMessages([]);
       }
       setOpen(true);
     },
