@@ -777,7 +777,7 @@ export function SettingsPanels({
                 type="button"
                 size="icon"
                 variant="ghost"
-                className="h-11 min-h-11 w-11 min-w-11 touch-manipulation text-muted-foreground transition-[opacity,color] duration-[150ms] hover:text-red-500 md:h-8 md:min-h-8 md:w-8 md:min-w-8 md:pointer-events-none md:opacity-0 md:group-hover:pointer-events-auto md:group-hover:opacity-100"
+                className="h-11 min-h-11 w-11 min-w-11 touch-manipulation text-muted-foreground transition-[opacity,color] duration-150 hover:text-red-500 md:h-8 md:min-h-8 md:w-8 md:min-w-8 md:pointer-events-none md:opacity-0 md:group-hover:pointer-events-auto md:group-hover:opacity-100"
                 disabled={pending}
                 onClick={() => onDeleteAccount(acc.id)}
                 aria-label={tc("delete")}>
@@ -1023,7 +1023,7 @@ export function SettingsPanels({
                           type="button"
                           size="icon"
                           variant="ghost"
-                          className="h-11 min-h-11 w-11 min-w-11 touch-manipulation text-muted-foreground transition-[opacity,color] duration-[150ms] hover:text-red-500 md:h-8 md:min-h-8 md:w-8 md:min-w-8 md:pointer-events-none md:opacity-0 md:group-hover:pointer-events-auto md:group-hover:opacity-100"
+                          className="h-11 min-h-11 w-11 min-w-11 touch-manipulation text-muted-foreground transition-[opacity,color] duration-150 hover:text-red-500 md:h-8 md:min-h-8 md:w-8 md:min-w-8 md:pointer-events-none md:opacity-0 md:group-hover:pointer-events-auto md:group-hover:opacity-100"
                           onClick={() => onDeleteSub(sub.id, sub.name)}
                           aria-label={tc("delete")}>
                           <Trash2 className="h-[15px] w-[15px]" />

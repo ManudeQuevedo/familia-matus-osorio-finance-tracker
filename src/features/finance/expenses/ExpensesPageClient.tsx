@@ -28,21 +28,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CreatorBadge } from "@/components/finance/CreatorBadge";
 import { FinanceContentHeaderActions } from "@/components/finance/FinanceContentHeaderActions";
 import { FinanceHeaderSearchTrigger } from "@/components/finance/finance-header-search-trigger";
 import { FinancePageShell } from "@/components/finance/FinancePageShell";
 import { RowDeleteButton } from "@/components/finance/row-delete-button";
-import { categoryLucideIcon } from "@/features/finance/category-lucide";
 import {
   AddExpenseModal,
   type AddExpenseModalKind,
@@ -159,26 +150,28 @@ export function ExpensesPageClient({
     const from = searchParams.get("from");
     if (!add) return;
 
-    if (add === "unplanned") {
-      setAddPreset("unplanned");
-      setAddStep(2);
-      setFromDashboard(from === "dashboard");
-      setAddOpen(true);
-      setTab("unplanned");
-    } else if (add === "unexpected") {
-      setAddPreset("unexpected");
-      setAddStep(2);
-      setFromDashboard(from === "dashboard");
-      setAddOpen(true);
-      setTab("unexpected");
-    } else {
-      setAddPreset(null);
-      setAddStep(1);
-      setFromDashboard(from === "dashboard");
-      setAddOpen(true);
-    }
+    queueMicrotask(() => {
+      if (add === "unplanned") {
+        setAddPreset("unplanned");
+        setAddStep(2);
+        setFromDashboard(from === "dashboard");
+        setAddOpen(true);
+        setTab("unplanned");
+      } else if (add === "unexpected") {
+        setAddPreset("unexpected");
+        setAddStep(2);
+        setFromDashboard(from === "dashboard");
+        setAddOpen(true);
+        setTab("unexpected");
+      } else {
+        setAddPreset(null);
+        setAddStep(1);
+        setFromDashboard(from === "dashboard");
+        setAddOpen(true);
+      }
 
-    router.replace(pathname, { scroll: false });
+      router.replace(pathname, { scroll: false });
+    });
   }, [searchParams, pathname, router]);
 
   const dbPeriod = uiQuincenaToDbPeriod(quincena);

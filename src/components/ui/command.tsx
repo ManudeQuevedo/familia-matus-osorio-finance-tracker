@@ -55,10 +55,10 @@ const Command = React.forwardRef<
     ref={ref}
     className={cn(
       "command-menu-root flex h-full w-full flex-col overflow-hidden rounded-2xl bg-transparent text-text-primary",
-      "[&_[cmdk-group-heading]]:px-4 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wide [&_[cmdk-group-heading]]:text-text-muted",
+      "**:[[cmdk-group-heading]]:px-4 **:[[cmdk-group-heading]]:py-1.5 **:[[cmdk-group-heading]]:font-medium **:[[cmdk-group-heading]]:text-[11px] **:[[cmdk-group-heading]]:uppercase **:[[cmdk-group-heading]]:tracking-wide **:[[cmdk-group-heading]]:text-text-muted",
       "[&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0",
       "[&_[cmdk-input-wrapper]_svg]:mx-4 [&_[cmdk-input-wrapper]_svg]:my-5 [&_[cmdk-input-wrapper]_svg]:size-5 [&_[cmdk-input-wrapper]_svg]:shrink-0 [&_[cmdk-input-wrapper]_svg]:text-text-muted",
-      "[&_[cmdk-item]]:px-3 [&_[cmdk-item]]:py-0 [&_[cmdk-item]_svg]:size-4 [&_[cmdk-item]_svg]:shrink-0",
+      "**:[[cmdk-item]]:px-3 **:[[cmdk-item]]:py-0 [&_[cmdk-item]_svg]:size-4 [&_[cmdk-item]_svg]:shrink-0",
       "[&_[cmdk-item]_svg]:text-text-muted [&_[cmdk-item][aria-selected=true]_svg]:text-accent",
       className,
     )}
@@ -176,7 +176,7 @@ const CommandGroup = React.forwardRef<
   <CommandPrimitive.Group
     ref={ref}
     className={cn(
-      "overflow-hidden p-1 [&_[cmdk-group-heading]]:pointer-events-none",
+      "overflow-hidden p-1 **:[[cmdk-group-heading]]:pointer-events-none",
       className,
     )}
     {...props}
@@ -204,7 +204,7 @@ const CommandItem = React.forwardRef<
     ref={ref}
     className={cn(
       "relative flex h-10 cursor-pointer select-none items-center rounded-lg px-3 text-sm font-medium outline-none",
-      'gap-3 [&_[data-slot="shortcut"]]:shrink-0',
+      'gap-3 **:data-[slot="shortcut"]:shrink-0',
       "[&_svg:first-child]:size-4 [&_svg:first-child]:shrink-0 [&_svg:first-child]:text-text-muted aria-selected:[&_svg:first-child]:text-accent",
       "bg-transparent aria-selected:text-accent",
       "data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50",
@@ -223,7 +223,7 @@ function CommandShortcut({
     <span
       data-slot="shortcut"
       className={cn(
-        "ml-auto inline-flex shrink-0 items-center rounded-md border border-border-default bg-[var(--bg-badge)] px-1.5 py-px font-mono text-[11px] text-text-muted tabular-nums",
+        "ml-auto inline-flex shrink-0 items-center rounded-md border border-border-default bg-bg-badge px-1.5 py-px font-mono text-[11px] text-text-muted tabular-nums",
         className,
       )}
       {...props}

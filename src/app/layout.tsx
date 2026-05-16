@@ -18,6 +18,20 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Finanzas",
   description: "Family finance tracker",
+  icons: {
+    icon: [
+      {
+        url: "/favicon-light.png",
+        media: "(prefers-color-scheme: light)",
+        type: "image/svg+xml",
+      },
+      {
+        url: "/favicon-dark.png",
+        media: "(prefers-color-scheme: dark)",
+        type: "image/svg+xml",
+      },
+    ],
+  },
 };
 
 export default function RootLayout({
@@ -31,6 +45,20 @@ export default function RootLayout({
       data-accent="emerald"
       suppressHydrationWarning
       className="h-full">
+      <head>
+        <link
+          rel="icon"
+          href="/favicon-light.svg"
+          media="(prefers-color-scheme: light)"
+          type="image/svg+xml"
+        />
+        <link
+          rel="icon"
+          href="/favicon-dark.svg"
+          media="(prefers-color-scheme: dark)"
+          type="image/svg+xml"
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} flex h-full min-h-0 flex-col bg-background font-sans text-foreground antialiased transition-colors duration-200`}>
         <FinanceThemeProvider>

@@ -179,7 +179,7 @@ export function NoteEditorPageClient({
 
   return (
     <FinancePageShell>
-      <header className="relative sticky top-0 z-20 -mx-4 border-b border-border-default bg-bg-sidebar px-4 py-3 shadow-sm md:-mx-6 md:px-6">
+      <header className="sticky top-0 z-20 -mx-4 border-b border-border-default bg-bg-sidebar px-4 py-3 shadow-sm md:-mx-6 md:px-6">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" className="shrink-0" asChild>
             <Link href="/notes" aria-label={t("back")}>

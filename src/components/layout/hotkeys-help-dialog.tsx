@@ -20,7 +20,7 @@ function Row({ label, shortcutText }: { label: string; shortcutText: string }) {
       <span className="text-sm text-text-primary">{label}</span>
       <kbd
         className={cn(
-          "inline-flex shrink-0 items-center rounded-md border border-border-default bg-[var(--bg-badge)] px-1.5 py-px font-mono text-[11px] text-text-muted",
+          "inline-flex shrink-0 items-center rounded-md border border-border-default bg-bg-badge px-1.5 py-px font-mono text-[11px] text-text-muted",
         )}>
         {shortcutText}
       </kbd>
@@ -37,7 +37,7 @@ export function HotkeysHelpDialog() {
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && closeHotkeysHelp()}>
-      <DialogContent className="max-h-[85dvh] max-w-[480px] gap-0 overflow-y-auto border border-border-default p-0 [&>button]:hidden shadow-[var(--shadow-modal)]">
+      <DialogContent className="max-h-[85dvh] max-w-[480px] gap-0 overflow-y-auto border border-border-default p-0 shadow-modal [&>button]:hidden">
         <div className="flex items-start justify-between border-b border-border-subtle px-5 py-4">
           <DialogHeader className="space-y-1 text-left">
             <DialogTitle className="text-base font-semibold text-text-primary">
